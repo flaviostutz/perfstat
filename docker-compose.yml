@@ -1,0 +1,16 @@
+version: '3.5'
+
+services:
+
+  restic-api:
+    build: .
+    ports:
+      - 7070:7070
+    environment:
+      - RESTIC_PASSWORD=123
+      - LOG_LEVEL=debug
+      - PRE_BACKUP_COMMAND=dd if=/dev/zero of=/backup-source/TESTFILE bs=100MB count=2
+      - POST_BACKUP_COMMAND=rm /backup-source/TESTFILE
+      - SOURCE_DATA_PATH=/backup-source/TESTFILE
+      - TARGET_DATA_PATH=/backup-repo
+

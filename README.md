@@ -18,43 +18,39 @@ https://www.tecmint.com/command-line-tools-to-monitor-linux-performance/
 * Disk usage by process: iotop
 * Network bandwidth by process: nethogs OR iftop with netstat -tup OR dstat --net --top-io-adv
 
-### This IS a problem
+## Awareness
+
+### Bottlenecks
 
 * Low idle CPU (overall)
   * top cpu eater processes
 * Low idle CPU (single CPU)
   * top cpu eater processes
+* High CPU wait (waiting for IO)
+  * top io waiter processes
+  * top "waited" disks
+* Low available network bandwidth (when max bandwidth is set by the user)
+  * top network eater processes
+* High number of processes waiting for CPU
+* Disk nr of block read/writes seems to be in a ceil limit (hist inference)
+* Disk bandwidth of read/writes seems to be in a ceil limit (hist inference)
+* Network interface bandwidth seems to be in a ceil limit (hist inference)
+
+### Risks
+
 * Low RAM
   * top ram eater processes
 * Low Disk
   * mapped device with lowest space
-* High CPU wait (waiting for IO)
-  * top io waiter processes
-  * top "waited" disks
 * Low available files to be open (ulimit)
   * top files open eater processes
-* Low available network bandwidth (when max bandwidth is set by the user)
-  * top network eater processes
+* RAM memory growing linearly for process - there maybe a memory leak
+  * process with growing memory
 
-dstat - statistics about various aspects in one tool - very rich
+### Harm
 
-### This MIGHT be a problem
-
-* High swap IO - few RAM, slower on disk
-* High number of processes waiting for CPU
+* High swap IO - few RAM, may slow system by using too much disk
 * High %util in disk - disk is being hammered and may not handle well spikes when needed
-
-### Historical inferences
-
-* Disk nr of block read/writes seems to be in a ceil limit
-* Disk bandwidth of read/writes seems to be in a ceil limit
-* Network interface bandwidth seems to be in a ceil limit
-
-### Golang libs
-
-* https://github.com/giampaolo/psutil
-* https://github.com/shirou/gopsutil
-* https://github.com/c9s/goprocinfo
 
 ### Top 5 (tips)
 
@@ -65,3 +61,4 @@ dstat - statistics about various aspects in one tool - very rich
 * Processes with high network usage
 * Destination hosts with high network bandwidth
 * Block devices with high reads/writes
+
