@@ -11,6 +11,7 @@ import (
 var (
 	cpuStats             = &CPUStats{}
 	cpuTimeseriesMaxSpan = 10 * time.Minute
+	cpuSampleFreq        = 2
 )
 
 type CPUTimes struct {
@@ -36,7 +37,9 @@ func CPUAvgPerc(ts *signalutils.Timeseries, loadTime time.Duration) (float64, bo
 		return -1, false
 	}
 	//percent of time with load
-	return (v2.Value - v1.Value) / (v2.Time.Sub(v1.Time).Seconds()), true
+	td := v2.Time.Sub(v1.Time).Seconds()
+	vd := v2.Value - v1.Value
+	return vd / td, true
 }
 
 func StartCPUWatcher() {
@@ -53,7 +56,7 @@ func StartCPUWatcher() {
 	}
 	cpuStats.Total = newCPUTimes(cpuTimeseriesMaxSpan)
 
-	StartWorker("cpu", cpuStep, 1, true)
+	StartWorker("cpu", cpuStep, cpuSampleFreq, true)
 	logrus.Debugf("CPU Watcher: running")
 }
 
@@ -67,12 +70,12 @@ func newCPUTimes(tsDuration time.Duration) CPUTimes {
 	}
 }
 
-func addCPUStats(cpu *cpu.TimesStat, cpuTimes *CPUTimes) {
-	cpuTimes.Idle.AddSample(cpu.Idle)
-	cpuTimes.System.AddSample(cpu.System)
-	cpuTimes.User.AddSample(cpu.User)
-	cpuTimes.IOWait.AddSample(cpu.Iowait)
-	cpuTimes.Steal.AddSample(cpu.Steal)
+func addCPUStats(cpu *cpu.TimesStat, cpuTimes *CPUTimes, cpus float64) {
+	cpuTimes.Idle.AddSample(cpu.Idle / cpus)
+	cpuTimes.System.AddSample(cpu.System / cpus)
+	cpuTimes.User.AddSample(cpu.User / cpus)
+	cpuTimes.IOWait.AddSample(cpu.Iowait / cpus)
+	cpuTimes.Steal.AddSample(cpu.Steal / cpus)
 	logrus.Debugf("cpustats=%s", cpu.String())
 }
 
@@ -82,15 +85,16 @@ func cpuStep() error {
 	if err != nil {
 		return err
 	}
-	addCPUStats(&cpus[0], &cpuStats.Total)
+	addCPUStats(&cpus[0], &cpuStats.Total, float64(len(cpuStats.CPU)))
 
 	//load per CPU
 	cpus, err = cpu.Times(true)
 	if err != nil {
 		return err
 	}
-	for i, cs := range cpuStats.CPU {
-		addCPUStats(&cpus[i], &cs)
+	for i := range cpuStats.CPU {
+		cs := &cpuStats.CPU[i]
+		addCPUStats(&cpus[i], cs, 1)
 	}
 
 	return nil
