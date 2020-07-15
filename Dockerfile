@@ -7,8 +7,8 @@ ADD /go.sum /app/
 
 RUN go mod download
 
-ADD /main.go /app/
-RUN go build -o /bin/perfstat
+ADD / /app/
+RUN go test
 
 
 FROM alpine:3.12.0
