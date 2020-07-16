@@ -63,3 +63,14 @@ https://www.tecmint.com/command-line-tools-to-monitor-linux-performance/
 * Destination hosts with high network bandwidth
 * Block devices with high reads/writes
 
+## Development tips
+
+### Profiling
+
+```golang
+//run profile for an specific test case
+go test -cpuprofile /tmp/cpu.prof -run ^TestProcessStatsBasic$
+
+//see results in browser
+go tool pprof -http 0.0.0.0:5050 /tmp/cpu.prof
+```
