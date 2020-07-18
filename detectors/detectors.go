@@ -17,6 +17,7 @@ var (
 type StatsType struct {
 	CPUStats     *stats.CPUStats
 	ProcessStats *stats.ProcessStats
+	MemStats     *stats.MemStats
 }
 
 //NewOptions create a new default options
@@ -26,6 +27,8 @@ func NewOptions() Options {
 		LowMemPercRange:         [2]float64{0.70, 0.95},
 		LowDiskPercRange:        [2]float64{0.70, 0.90},
 		LowFileHandlesPercRange: [2]float64{0.70, 0.90},
+		CPULoadAvgDuration:      1 * time.Minute,
+		IORateSpan:              1 * time.Minute,
 	}
 }
 
@@ -36,6 +39,8 @@ type Options struct {
 	LowMemPercRange         [2]float64
 	LowDiskPercRange        [2]float64
 	LowFileHandlesPercRange [2]float64
+	CPULoadAvgDuration      time.Duration
+	IORateSpan              time.Duration
 }
 
 //Resource a computational resource
@@ -101,8 +106,9 @@ func SetLogLevel(level logrus.Level) {
 func StartDetections() {
 	if !Started {
 		ActiveStats = &StatsType{}
-		ActiveStats.CPUStats = stats.NewCPUStats(10*time.Minute, 2)
-		ActiveStats.ProcessStats = stats.NewProcessStats(10*time.Minute, 2)
+		ActiveStats.CPUStats = stats.NewCPUStats(5*time.Minute, 1)
+		ActiveStats.ProcessStats = stats.NewProcessStats(1*time.Minute, 1)
+		ActiveStats.MemStats = stats.NewMemStats(30*time.Minute, 1)
 		Started = true
 	}
 }

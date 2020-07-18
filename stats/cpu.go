@@ -38,11 +38,11 @@ func CPUAvgPerc(ts *signalutils.Timeseries, loadTime time.Duration) (float64, bo
 }
 
 func NewCPUStats(timeseriesMaxSpan time.Duration, sampleFreq float64) *CPUStats {
-	logrus.Debugf("CPU Stats: initializing...")
+	logrus.Tracef("CPU Stats: initializing...")
 
 	nrcpu, err := cpu.Counts(true)
 	if err != nil {
-		logrus.Warningf("Cannot initilize cpu watcher. err=%s", err)
+		logrus.Warningf("Cannot initilize cpu stats. err=%s", err)
 	}
 
 	ct := &CPUStats{}

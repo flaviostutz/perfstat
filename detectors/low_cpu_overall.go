@@ -1,7 +1,7 @@
 package detectors
 
 import (
-	"time"
+	"fmt"
 
 	"github.com/flaviostutz/perfstat/stats"
 	"github.com/sirupsen/logrus"
@@ -9,9 +9,9 @@ import (
 
 func init() {
 	RegisterDetector(func(opt *Options) []Issue {
-		idle, ok := stats.CPUAvgPerc(&ActiveStats.CPUStats.Total.Idle, 1*time.Second)
+		idle, ok := stats.CPUAvgPerc(&ActiveStats.CPUStats.Total.Idle, opt.CPULoadAvgDuration)
 		if !ok {
-			logrus.Tracef("Not enough data for CPU analysis")
+			logrus.Debugf("Not enough data for CPU analysis")
 			return []Issue{}
 		}
 
@@ -24,21 +24,21 @@ func init() {
 		if score > 0 {
 
 			//get hungry processes
-			// processes, err := process.Processes()
-			// if err != nil {
-			// 	return []Issue{
-			// 		{Typ: "internal-error", Name: "cpu-overall", Message: fmt.Sprintf("Error getting processes stats. err=%s", err)},
-			// 	}
-			// }
-
-			// for _, proc := range processes {
-			// 	pperc, err := proc.Percent(1 * time.Second)
-			// 	if err != nil {
-			// 		return []Issue{
-			// 			{Typ: "lib-error", Name: "cpu-overall", Message: fmt.Sprintf("Error getting processes stats. err=%s", err)},
-			// 		}
-			// 	}
-			// }
+			related := make([]Resource, 0)
+			for _, proc := range ActiveStats.ProcessStats.GetTopCPULoad() {
+				if len(related) >= 3 {
+					break
+				}
+				ps, _ := stats.CPUAvgPerc(&proc.CPUTimes.System, opt.CPULoadAvgDuration)
+				pu, _ := stats.CPUAvgPerc(&proc.CPUTimes.User, opt.CPULoadAvgDuration)
+				r := Resource{
+					Typ:           "process",
+					Name:          fmt.Sprintf("pid:%d", proc.Pid),
+					PropertyName:  "load",
+					PropertyValue: pu + ps,
+				}
+				related = append(related, r)
+			}
 
 			issues = append(issues, Issue{
 				Typ:   "bottleneck",
@@ -50,15 +50,7 @@ func init() {
 					PropertyName:  "load",
 					PropertyValue: load,
 				},
-				Related: []Resource{
-					// {
-					// 	Typ:           "top-process",
-					// 	Name:          fmt.Sprintf("cpu:%d", ci),
-					// 	PropertyName:  "load",
-					// 	PropertyValue: p1,
-					// },
-				},
-				// Message string
+				Related: related,
 			})
 		}
 
