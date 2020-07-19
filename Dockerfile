@@ -10,5 +10,10 @@ ADD /go.sum /app/
 RUN go mod download
 
 ADD / /app/
-RUN go test ./...
+
+RUN echo "TEST stats" && cd /app/stats && go test -v
+RUN echo "TEST detectors" && cd /app/detectors && go test -v
 # ./... -run ^TestProcessStatsBasic$
+
+CMD [ "/app/test.sh" ]
+

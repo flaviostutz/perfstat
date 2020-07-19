@@ -32,6 +32,7 @@ func NewOptions() Options {
 		LowFileHandlesPercRange: [2]float64{0.70, 0.90},
 		CPULoadAvgDuration:      1 * time.Minute,
 		IORateLoadDuration:      1 * time.Minute,
+		IOLimitsSpan:            1 * time.Minute,
 	}
 }
 
@@ -45,6 +46,7 @@ type Options struct {
 	LowFileHandlesPercRange [2]float64
 	CPULoadAvgDuration      time.Duration
 	IORateLoadDuration      time.Duration
+	IOLimitsSpan            time.Duration
 }
 
 //Resource a computational resource

@@ -72,14 +72,17 @@ curl localhost:8880/metrics
 
 * Low idle CPU (overall) OK
   * top cpu eater processes OK
+  * high steal cpu OK
 * Low idle CPU (single CPU)
   * top cpu eater processes
 * High CPU wait (waiting for IO) OK
   * top io waiter processes OK
   * top "waited" disks OK
-* Disk nr of block read/writes seems to be in a ceil limit
+* Low available open files descriptors
+  * top process by open files
+* Disk nr of block read/writes seems to be in a ceil limit OK
   * top disk eater processes
-* Disk bandwidth of read/writes seems to be in a ceil limit
+* Disk bandwidth of read/writes seems to be in a ceil limit OK
   * top disk eater processes
 * Network interface bandwidth seems to be in a ceil limit
   * top network bandwidth eater processes

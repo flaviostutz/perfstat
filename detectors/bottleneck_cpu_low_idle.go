@@ -40,6 +40,18 @@ func init() {
 				related = append(related, r)
 			}
 
+			//check if vm hypervisor is stealing CPU power
+			steal, ok := stats.TimeLoadPerc(&ActiveStats.CPUStats.Total.Steal, opt.CPULoadAvgDuration)
+			if ok && steal > 0.2 {
+				r := Resource{
+					Typ:           "cpu",
+					Name:          "cpu:total",
+					PropertyName:  "cpu-steal-perc",
+					PropertyValue: steal,
+				}
+				related = append(related, r)
+			}
+
 			issues = append(issues, Issue{
 				Typ:   "bottleneck",
 				ID:    "cpu-low-idle",
