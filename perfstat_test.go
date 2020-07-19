@@ -15,10 +15,11 @@ func TestCPULowDetector(t *testing.T) {
 	opt := detectors.NewOptions()
 	//force alarms
 	opt.HighCPUPercRange = [2]float64{0.0, 0.9}
-	p = NewPerfstat(opt)
+	opt.CPULoadAvgDuration = 1 * time.Second
+	opt.IORateLoadDuration = 1 * time.Second
+	p = StartPerfstat(opt)
 	p.setLogLevel(logrus.DebugLevel)
-	p.Start()
-	time.Sleep(3 * time.Second)
+	time.Sleep(6 * time.Second)
 
 	issues, err := p.DetectNow()
 	assert.Nil(t, err)

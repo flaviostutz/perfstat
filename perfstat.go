@@ -15,11 +15,13 @@ type Perfstat struct {
 	processStats *stats.ProcessStats
 }
 
-//NewPerfstat initializes a new Perfstat utility
-func NewPerfstat(opt detectors.Options) Perfstat {
-	return Perfstat{
+//StartPerfstat initializes a new Perfstat utility
+func StartPerfstat(opt detectors.Options) Perfstat {
+	p := Perfstat{
 		opt: opt,
 	}
+	detectors.StartDetections()
+	return p
 }
 
 //DetectNow perform issues detection on the system once
@@ -42,10 +44,6 @@ func (p *Perfstat) DetectNow() ([]detectors.Issue, error) {
 func (p *Perfstat) setLogLevel(level logrus.Level) {
 	logrus.SetLevel(level)
 	detectors.SetLogLevel(level)
-}
-
-func (p *Perfstat) Start() {
-	detectors.StartDetections()
 }
 
 func (p *Perfstat) Stop() {

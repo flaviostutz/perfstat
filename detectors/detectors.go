@@ -19,6 +19,7 @@ type StatsType struct {
 	ProcessStats *stats.ProcessStats
 	MemStats     *stats.MemStats
 	DiskStats    *stats.DiskStats
+	NetStats     *stats.NetStats
 }
 
 //NewOptions create a new default options
@@ -113,6 +114,7 @@ func StartDetections() {
 		ActiveStats.ProcessStats = stats.NewProcessStats(1*time.Minute, 2*time.Minute, 1*time.Minute, 1)
 		ActiveStats.MemStats = stats.NewMemStats(30*time.Minute, 1)
 		ActiveStats.DiskStats = stats.NewDiskStats(30*time.Minute, 1*time.Minute, 1)
+		ActiveStats.NetStats = stats.NewNetStats(30*time.Minute, 1*time.Minute, 1)
 		Started = true
 	}
 }
@@ -121,6 +123,9 @@ func StopDetections() {
 	if Started {
 		ActiveStats.CPUStats.Stop()
 		ActiveStats.ProcessStats.Stop()
+		ActiveStats.MemStats.Stop()
+		ActiveStats.DiskStats.Stop()
+		ActiveStats.NetStats.Stop()
 		Started = false
 	}
 }
