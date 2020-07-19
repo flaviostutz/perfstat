@@ -1,59 +1,112 @@
-# bottler
-Analyze and show tips about possible bottlenecks in Linux systems regarding to diskio, networking, cpu, swapping, memory etc
+# perfstat
 
-https://blog.appsignal.com/2018/03/06/understanding-cpu-statistics.html
-https://www.cyberciti.biz/tips/linux-resource-utilization-to-detect-system-bottlenecks.html
-http://web.archive.org/web/20101028025942/https://anchor.com.au/hosting/development/HuntingThePerformanceWumpus
-https://www.tecmint.com/command-line-tools-to-monitor-linux-performance/
+Analyze and show tips about possible bottlenecks and risks in Linux systems regarding to diskio, networking, cpu, swapping, memory etc.
 
-## Brainstorm
+We decided to create this utility to help on the laborious job of aswering the following:
 
-## Existing tools
+* "Is the system OK?"
+* "Will it be OK?"
+* "Do we have to do anything now?"
 
-* CPU stats by CPU (%idle %wait etc): mpstat -P ALL 2 5
-* RAM stats (free, cache, buffer, swap): vmstat -S M 2
-* Disk stats by block device (wr/s rd/s etc): iostat -dx 1
-* Network bandwidth by host: iftop
-* Open files by process: lsof
-* CPU usage by process: top
-* Disk usage by process: iotop
-* Network bandwidth by process: nethogs OR iftop with netstat -tup OR dstat --net --top-io-adv
+After hundred of hours looking for metrics on CLI and Prometheus/Grafana tools, correlating data to check if all is ok, now we can automate some of this work. Surely this won't answer all the doubts, but can help you on some repetitive work.
 
-## Awareness
+**If you are a system admin**, answering the "Is the system OK" overnight too, come and tell us what you miss from perfstat on the [Issues](https://github.com/flaviostutz/perfstat/issues). Share your experience and automate it forever!
 
-### Bottlenecks
+**If you are a developer** too, help system admins find problems more quickly by implementing some of the [Issues](https://github.com/flaviostutz/perfstat/issues) so they can keep your software up! If in doubt, ask for a task in "Issues" and we'd be glad to answer.
 
-* Low idle CPU (overall)
-  * top cpu eater processes
+Perfstat has various interfaces:
+
+* **CLI**: ```perfstat``` - for local diagnostics
+* **Prometheus Exporter**: ```perfstat --prom-enable``` - for remote monitoring
+* **Golang lib**: ```go get github.com/flaviostutz/perfstat``` - for using this in something greater
+
+## Usage
+
+### CLI
+
+```sh
+perfstat
+```
+
+Output
+
+```sh
+```
+
+### Prometheus Exporter
+
+* Start exporter
+
+```sh
+perfstat --prom-enable --prom-bind 0.0.0.0 --prom-port 8880 --prom-path /metrics
+```
+
+* Check metrics
+
+```sh
+curl localhost:8880/metrics
+```
+
+* Add this exporter to Prometheus configuration
+
+#### Prometheus Metrics
+
+* **issue_criticity** - criticity score for active issues
+  * label resource - cpu, mem, disk, net
+  * label name - cpu:1, disk-/mnt/test, nic:eth0
+
+* **issue_cpu_perc** - cpu load for active issues
+  * label cpu - cpu:1, cpu:total
+  * label type - iowait, used
+
+* **issue_mem_perc** - mem perc for active issues
+  * label type - ram used, swap used
+  
+* **issue_disk_perc** - disk storage for active issues
+  * label mount - /mnt/test1
+  * label type - used
+
+## Issue Detectors
+
+### Bottlenecks (already a problem)
+
+* Low idle CPU (overall) OK
+  * top cpu eater processes OK
 * Low idle CPU (single CPU)
   * top cpu eater processes
-* High CPU wait (waiting for IO)
-  * top io waiter processes
-  * top "waited" disks
-* Low available network bandwidth (when max bandwidth is set by the user)
-  * top network eater processes
-* High number of processes waiting for CPU
-* Disk nr of block read/writes seems to be in a ceil limit (hist inference)
-* Disk bandwidth of read/writes seems to be in a ceil limit (hist inference)
-* Network interface bandwidth seems to be in a ceil limit (hist inference)
+* High CPU wait (waiting for IO) OK
+  * top io waiter processes OK
+  * top "waited" disks OK
+* Disk nr of block read/writes seems to be in a ceil limit
+  * top disk eater processes
+* Disk bandwidth of read/writes seems to be in a ceil limit
+  * top disk eater processes
+* Network interface bandwidth seems to be in a ceil limit
+  * top network bandwidth eater processes
+* Network interface pps seems to be in a ceil limit
+  * top network pps eater processes
 
-### Risks
+### Risks (may cause problems)
 
 * Low RAM
   * top ram eater processes
-* Low Disk
+* Low Disk space
   * mapped device with lowest space
+* Low Disk inodes
+  * mapped device with lowest inodes
 * Low available files to be open (ulimit)
   * top files open eater processes
 * RAM memory growing linearly for process - there maybe a memory leak
   * process with growing memory
+* High error rate in NIC
+  * show processes with most net errors
 
-### Harm
+### Enhancements
 
-* High swap IO - few RAM, may slow system by using too much disk
+* High swap IO - few RAM, may slow down system by using too much disk
 * High %util in disk - disk is being hammered and may not handle well spikes when needed
 
-### Top 5 (tips)
+### Insights (top 5)
 
 * Processes with high cpu wait
 * Processes with high cpu usage
@@ -63,7 +116,7 @@ https://www.tecmint.com/command-line-tools-to-monitor-linux-performance/
 * Destination hosts with high network bandwidth
 * Block devices with high reads/writes
 
-## Development tips
+## Perfstat developer tips
 
 ### Profiling
 
@@ -74,3 +127,21 @@ go test -cpuprofile /tmp/cpu.prof -run ^TestProcessStatsBasic$
 //see results in browser
 go tool pprof -http 0.0.0.0:5050 /tmp/cpu.prof
 ```
+
+## Existing tools for performance analysis
+
+* CPU stats by CPU (%idle %wait etc): mpstat -P ALL 2 5
+* RAM stats (free, cache, buffer, swap): vmstat -S M 2
+* Disk stats by block device (wr/s rd/s etc): iostat -dx 1
+* Network bandwidth by host: iftop
+* Open files by process: lsof
+* CPU usage by process: top
+* Disk usage by process: iotop
+* Network bandwidth by process: nethogs OR iftop with netstat -tup OR dstat --net --top-io-adv
+
+## More info about performance analysis
+
+* https://blog.appsignal.com/2018/03/06/understanding-cpu-statistics.html
+* https://www.cyberciti.biz/tips/linux-resource-utilization-to-detect-system-bottlenecks.html
+* http://web.archive.org/web/20101028025942/https://anchor.com.au/hosting/development/HuntingThePerformanceWumpus
+* https://www.tecmint.com/command-line-tools-to-monitor-linux-performance/

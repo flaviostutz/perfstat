@@ -14,7 +14,7 @@ var p Perfstat
 func TestCPULowDetector(t *testing.T) {
 	opt := detectors.NewOptions()
 	//force alarms
-	opt.LowCPUPercRange = [2]float64{0.0, 0.9}
+	opt.HighCPUPercRange = [2]float64{0.0, 0.9}
 	p = NewPerfstat(opt)
 	p.setLogLevel(logrus.DebugLevel)
 	p.Start()

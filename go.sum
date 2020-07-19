@@ -16,6 +16,10 @@ github.com/flaviostutz/signalutils v1.5.0 h1:WzEriWf5Fbkp7x1zFJJXxdck2ANT9x44AXa
 github.com/flaviostutz/signalutils v1.5.0/go.mod h1:qwCZsCUfNkX3WdfPColjXZ7MerV9V6hDcfnzegbrQTI=
 github.com/flaviostutz/signalutils v1.6.0 h1:M96wT682qxI5mX3GcpSWRT9SWq8Z8ZpPI8zHoolMA08=
 github.com/flaviostutz/signalutils v1.6.0/go.mod h1:qwCZsCUfNkX3WdfPColjXZ7MerV9V6hDcfnzegbrQTI=
+github.com/flaviostutz/signalutils v1.6.1 h1:0udZ9+pYtJj6qfZuaNSgAkGOJvb+cgxJv3LVWKQ8J6o=
+github.com/flaviostutz/signalutils v1.6.1/go.mod h1:qwCZsCUfNkX3WdfPColjXZ7MerV9V6hDcfnzegbrQTI=
+github.com/flaviostutz/signalutils v1.7.0 h1:CimMEc+KdJtuvEMrMFBcX3yeIFYwlhFeaqSqyxoBmh0=
+github.com/flaviostutz/signalutils v1.7.0/go.mod h1:qwCZsCUfNkX3WdfPColjXZ7MerV9V6hDcfnzegbrQTI=
 github.com/go-ole/go-ole v1.2.4 h1:nNBDSCOigTSiarFpYE9J/KtEA1IOW4CNeqT9TQDqCxI=
 github.com/go-ole/go-ole v1.2.4/go.mod h1:XCwSNxSkXRo4vlyPy93sltvi/qJq0jqQhjqQNIwKuxM=
 github.com/google/pprof v0.0.0-20200708004538-1a94d8640e99 h1:Ak8CrdlwwXwAZxzS66vgPt4U8yUZX7JwLvVR58FN5jM=

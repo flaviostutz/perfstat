@@ -9,7 +9,7 @@ import (
 
 func init() {
 	RegisterDetector(func(opt *Options) []Issue {
-		idle, ok := stats.CPUAvgPerc(&ActiveStats.CPUStats.Total.Idle, opt.CPULoadAvgDuration)
+		idle, ok := stats.TimeLoadPerc(&ActiveStats.CPUStats.Total.Idle, opt.CPULoadAvgDuration)
 		if !ok {
 			logrus.Debugf("Not enough data for CPU analysis")
 			return []Issue{}
@@ -19,22 +19,22 @@ func init() {
 
 		issues := make([]Issue, 0)
 
-		score := criticityScore(load, opt.LowCPUPercRange)
-		// logrus.Debugf("criticityScore=%.2f overall-cpu-load=%.2f", score, load)
+		score := criticityScore(load, opt.HighCPUPercRange)
+		logrus.Tracef("cpu-low load=%.2f criticityScore=%.2f", load, score)
 		if score > 0 {
 
 			//get hungry processes
 			related := make([]Resource, 0)
-			for _, proc := range ActiveStats.ProcessStats.GetTopCPULoad() {
+			for _, proc := range ActiveStats.ProcessStats.TopCPULoad() {
 				if len(related) >= 3 {
 					break
 				}
-				ps, _ := stats.CPUAvgPerc(&proc.CPUTimes.System, opt.CPULoadAvgDuration)
-				pu, _ := stats.CPUAvgPerc(&proc.CPUTimes.User, opt.CPULoadAvgDuration)
+				ps, _ := stats.TimeLoadPerc(&proc.CPUTimes.System, opt.CPULoadAvgDuration)
+				pu, _ := stats.TimeLoadPerc(&proc.CPUTimes.User, opt.CPULoadAvgDuration)
 				r := Resource{
 					Typ:           "process",
 					Name:          fmt.Sprintf("pid:%d", proc.Pid),
-					PropertyName:  "load",
+					PropertyName:  "cpu-load-perc",
 					PropertyValue: pu + ps,
 				}
 				related = append(related, r)
@@ -42,12 +42,12 @@ func init() {
 
 			issues = append(issues, Issue{
 				Typ:   "bottleneck",
-				ID:    "cpu-low",
+				ID:    "cpu-low-idle",
 				Score: score,
 				Res: Resource{
 					Typ:           "cpu",
-					Name:          "cpu:overall",
-					PropertyName:  "load",
+					Name:          "cpu:all",
+					PropertyName:  "load-perc",
 					PropertyValue: load,
 				},
 				Related: related,

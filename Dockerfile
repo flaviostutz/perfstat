@@ -10,5 +10,5 @@ ADD /go.sum /app/
 RUN go mod download
 
 ADD / /app/
-RUN go test 
+RUN go test ./...
 # ./... -run ^TestProcessStatsBasic$

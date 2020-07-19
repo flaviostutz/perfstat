@@ -12,7 +12,7 @@ import (
 
 func TestProcessStatsBasic(t *testing.T) {
 	logrus.SetLevel(logrus.DebugLevel)
-	ps := NewProcessStats(120*time.Second, 1)
+	ps := NewProcessStats(120*time.Second, 1*time.Second, 1*time.Second, 1)
 	time.Sleep(4 * time.Second)
 	assert.GreaterOrEqual(t, len(ps.Processes), 1)
 	for _, p := range ps.Processes {
@@ -22,7 +22,7 @@ func TestProcessStatsBasic(t *testing.T) {
 		assert.GreaterOrEqual(t, p.CPUTimes.User.Size(), 3)
 		assert.GreaterOrEqual(t, p.IOCounters.ReadBytes.Timeseries.Size(), 3)
 		assert.GreaterOrEqual(t, p.MemoryTotal.Size(), 3)
-		tc, ok := CPUAvgPerc(&p.CPUTimes.User, 1*time.Second)
+		tc, ok := TimeLoadPerc(&p.CPUTimes.User, 1*time.Second)
 		assert.True(t, ok, fmt.Sprintf("name=%s pid=%d", p.Name, p.Pid))
 		assert.LessOrEqualf(t, tc, 1.0, fmt.Sprintf("name=%s pid=%d", p.Name, p.Pid))
 	}

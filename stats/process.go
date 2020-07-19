@@ -11,10 +11,12 @@ import (
 )
 
 type ProcessStats struct {
-	Processes         map[int32]*ProcessCounters
-	timeseriesMaxSpan time.Duration
-	worker            *signalutils.Worker
-	lastCleanupTime   time.Time
+	Processes          map[int32]*ProcessMetrics
+	timeseriesMaxSpan  time.Duration
+	ioLoadRateTimeSpan time.Duration
+	cpuLoadTimeSpan    time.Duration
+	worker             *signalutils.Worker
+	lastCleanupTime    time.Time
 }
 
 type NetIOCounters struct {
@@ -34,7 +36,7 @@ type IOCounters struct {
 	WriteBytes signalutils.TimeseriesCounterRate
 }
 
-type ProcessCounters struct {
+type ProcessMetrics struct {
 	Pid                int32
 	Name               string
 	Cmdline            string
@@ -50,11 +52,13 @@ type ProcessCounters struct {
 	OpenFiles          signalutils.Timeseries
 }
 
-func NewProcessStats(timeseriesMaxSpan time.Duration, sampleFreq float64) *ProcessStats {
+func NewProcessStats(timeseriesMaxSpan time.Duration, ioLoadRateTimeSpan time.Duration, cpuLoadTimeSpan time.Duration, sampleFreq float64) *ProcessStats {
 	logrus.Tracef("Process Stats: initializing...")
 	ps := &ProcessStats{
-		Processes:         make(map[int32]*ProcessCounters),
-		timeseriesMaxSpan: timeseriesMaxSpan,
+		Processes:          make(map[int32]*ProcessMetrics),
+		ioLoadRateTimeSpan: ioLoadRateTimeSpan,
+		cpuLoadTimeSpan:    cpuLoadTimeSpan,
+		timeseriesMaxSpan:  timeseriesMaxSpan,
 	}
 	signalutils.StartWorker("process", ps.processStep, sampleFreq/2, sampleFreq, true)
 	logrus.Debugf("Process Stats: running")
@@ -87,7 +91,7 @@ func (ps *ProcessStats) processStep() error {
 		proc, ok := ps.Processes[p.Pid]
 		if !ok {
 			//initialize process counter
-			proc = &ProcessCounters{}
+			proc = &ProcessMetrics{}
 
 			proc.Pid = p.Pid
 			proc.Name, err = p.Name()
@@ -135,7 +139,7 @@ func (ps *ProcessStats) processStep() error {
 	return nil
 }
 
-func addProcessStats(p *process.Process, proc *ProcessCounters, timeseriesMaxSpan time.Duration) {
+func addProcessStats(p *process.Process, proc *ProcessMetrics, timeseriesMaxSpan time.Duration) {
 	var err error
 	proc.LastSeen = time.Now()
 
@@ -144,11 +148,11 @@ func addProcessStats(p *process.Process, proc *ProcessCounters, timeseriesMaxSpa
 	if err != nil {
 		logrus.Warnf("Error getting process CPUTimes for pid=%d; err=%s", p.Pid, err)
 	} else {
-		proc.CPUTimes.IOWait.AddSample(timestats.Iowait)
-		proc.CPUTimes.Idle.AddSample(timestats.Idle)
-		proc.CPUTimes.Steal.AddSample(timestats.Steal)
-		proc.CPUTimes.System.AddSample(timestats.System)
-		proc.CPUTimes.User.AddSample(timestats.User)
+		proc.CPUTimes.IOWait.Add(timestats.Iowait)
+		proc.CPUTimes.Idle.Add(timestats.Idle)
+		proc.CPUTimes.Steal.Add(timestats.Steal)
+		proc.CPUTimes.System.Add(timestats.System)
+		proc.CPUTimes.User.Add(timestats.User)
 	}
 
 	//network connection count
@@ -156,7 +160,7 @@ func addProcessStats(p *process.Process, proc *ProcessCounters, timeseriesMaxSpa
 	if err != nil {
 		logrus.Warnf("Error getting process Connections for pid=%d; err=%s", p.Pid, err)
 	} else {
-		proc.Connections.AddSample(float64(len(connstats)))
+		proc.Connections.Add(float64(len(connstats)))
 	}
 
 	//network io overall
@@ -206,14 +210,14 @@ func addProcessStats(p *process.Process, proc *ProcessCounters, timeseriesMaxSpa
 	if err != nil {
 		logrus.Warnf("Error getting process MemoryPercent for pid=%d; err=%s", p.Pid, err)
 	} else {
-		proc.MemoryPercent.AddSample(float64(mp))
+		proc.MemoryPercent.Add(float64(mp))
 	}
 
 	mi, err := p.MemoryInfo()
 	if err != nil {
 		logrus.Warnf("Error getting process MemoryInfo for pid=%d; err=%s", p.Pid, err)
 	} else {
-		proc.MemoryTotal.AddSample(float64(mi.RSS))
+		proc.MemoryTotal.Add(float64(mi.RSS))
 	}
 
 	//file descriptors
@@ -221,7 +225,7 @@ func addProcessStats(p *process.Process, proc *ProcessCounters, timeseriesMaxSpa
 	if err != nil {
 		logrus.Warnf("Error getting process NumFDs for pid=%d; err=%s", p.Pid, err)
 	} else {
-		proc.FD.AddSample(float64(fd))
+		proc.FD.Add(float64(fd))
 	}
 
 	//open files
@@ -229,7 +233,7 @@ func addProcessStats(p *process.Process, proc *ProcessCounters, timeseriesMaxSpa
 	if err != nil {
 		logrus.Warnf("Error getting process OpenFiles for pid=%d; err=%s", p.Pid, err)
 	} else {
-		proc.OpenFiles.AddSample(float64(len(of)))
+		proc.OpenFiles.Add(float64(len(of)))
 	}
 }
 
@@ -237,8 +241,8 @@ func addNetIOCounters(n *net.IOCountersStat, nioc *NetIOCounters) {
 	nioc.InterfaceName = n.Name
 	nioc.BytesRecv.Set(float64(n.BytesRecv))
 	nioc.BytesSent.Set(float64(n.BytesSent))
-	nioc.ErrIn.Set(float64(n.Errin))
-	nioc.ErrOut.Set(float64(n.Errout))
+	nioc.ErrIn.Set(float64(n.Errin + n.Dropin))
+	nioc.ErrOut.Set(float64(n.Errout + n.Dropout))
 	nioc.PacketsRecv.Set(float64(n.PacketsRecv))
 	nioc.PacketsSent.Set(float64(n.PacketsSent))
 }
@@ -247,157 +251,164 @@ func (ps *ProcessStats) Stop() {
 	ps.worker.Stop()
 }
 
-//Order processeses
-// type TopProcesses []*ProcessCounters
-
-// func (t TopProcesses) Len() int      { return len(t) }
-// func (t TopProcesses) Swap(i, j int) { t[i], t[j] = t[j], t[i] }
-
-// type ProcessByCPU struct {
-// 	TopProcesses
-// }
-
-// sort.Slice(people, func(i, j int) bool { return people[i].Name < people[j].Name })
-// pi := CPUAvgPerc(&proc.CPUTimes.System, 10*time.Second)
-
-func (p *ProcessStats) GetTopCPULoad() []*ProcessCounters {
+func (p *ProcessStats) TopCPULoad() []*ProcessMetrics {
 	pa := p.processesArray()
 	sort.Slice(pa, func(i, j int) bool {
 		pi := pa[i]
 		pj := pa[j]
 
-		sysi, _ := CPUAvgPerc(&pi.CPUTimes.System, 10*time.Second)
-		usri, _ := CPUAvgPerc(&pi.CPUTimes.User, 10*time.Second)
-		sysj, _ := CPUAvgPerc(&pj.CPUTimes.System, 10*time.Second)
-		usrj, _ := CPUAvgPerc(&pj.CPUTimes.User, 10*time.Second)
+		sysi, _ := TimeLoadPerc(&pi.CPUTimes.System, p.cpuLoadTimeSpan)
+		usri, _ := TimeLoadPerc(&pi.CPUTimes.User, p.cpuLoadTimeSpan)
+
+		sysj, _ := TimeLoadPerc(&pj.CPUTimes.System, p.cpuLoadTimeSpan)
+		usrj, _ := TimeLoadPerc(&pj.CPUTimes.User, p.cpuLoadTimeSpan)
 
 		return (sysj + usrj) < (sysi + usri)
 	})
 	return pa
 }
 
-func (p *ProcessStats) GetTopCPUIOWait() []*ProcessCounters {
+func (p *ProcessStats) TopCPUIOWait() []*ProcessMetrics {
 	pa := p.processesArray()
 	sort.Slice(pa, func(i, j int) bool {
 		pi := pa[i]
 		pj := pa[j]
 
-		wi, _ := CPUAvgPerc(&pi.CPUTimes.IOWait, 10*time.Second)
-		wj, _ := CPUAvgPerc(&pj.CPUTimes.IOWait, 10*time.Second)
+		wi, _ := TimeLoadPerc(&pi.CPUTimes.IOWait, p.cpuLoadTimeSpan)
+		wj, _ := TimeLoadPerc(&pj.CPUTimes.IOWait, p.cpuLoadTimeSpan)
 
 		return wj < wi
 	})
 	return pa
 }
 
-func (p *ProcessStats) GetTopIOBytes(read bool) []*ProcessCounters {
+func (p *ProcessStats) TopIOByteRate(read bool) []*ProcessMetrics {
 	pa := p.processesArray()
 	sort.Slice(pa, func(i, j int) bool {
 		pi := pa[i]
 		pj := pa[j]
 
 		if read {
-			ri, _ := CPUAvgPerc(&pi.IOCounters.ReadBytes.Timeseries, 10*time.Second)
-			rj, _ := CPUAvgPerc(&pj.IOCounters.ReadBytes.Timeseries, 10*time.Second)
+			ri, _ := pi.IOCounters.ReadBytes.Rate(p.ioLoadRateTimeSpan)
+			rj, _ := pj.IOCounters.ReadBytes.Rate(p.ioLoadRateTimeSpan)
 			return rj < ri
 		}
 
-		wi, _ := CPUAvgPerc(&pi.IOCounters.WriteBytes.Timeseries, 10*time.Second)
-		wj, _ := CPUAvgPerc(&pj.IOCounters.WriteBytes.Timeseries, 10*time.Second)
+		wi, _ := pi.IOCounters.WriteBytes.Rate(p.ioLoadRateTimeSpan)
+		wj, _ := pj.IOCounters.WriteBytes.Rate(p.ioLoadRateTimeSpan)
 		return wj < wi
 
 	})
 	return pa
 }
 
-func (p *ProcessStats) GetTopIOCount(read bool) []*ProcessCounters {
+func (p *ProcessStats) TopIOOpRate(read bool) []*ProcessMetrics {
 	pa := p.processesArray()
 	sort.Slice(pa, func(i, j int) bool {
 		pi := pa[i]
 		pj := pa[j]
 
 		if read {
-			ri, _ := CPUAvgPerc(&pi.IOCounters.ReadCount.Timeseries, 10*time.Second)
-			rj, _ := CPUAvgPerc(&pj.IOCounters.ReadCount.Timeseries, 10*time.Second)
+			ri, _ := pi.IOCounters.ReadCount.Rate(p.ioLoadRateTimeSpan)
+			rj, _ := pj.IOCounters.ReadCount.Rate(p.ioLoadRateTimeSpan)
 			return rj < ri
 		}
 
-		wi, _ := CPUAvgPerc(&pi.IOCounters.WriteCount.Timeseries, 10*time.Second)
-		wj, _ := CPUAvgPerc(&pj.IOCounters.WriteCount.Timeseries, 10*time.Second)
+		wi, _ := pi.IOCounters.WriteCount.Rate(p.ioLoadRateTimeSpan)
+		wj, _ := pj.IOCounters.WriteCount.Rate(p.ioLoadRateTimeSpan)
 		return wj < wi
 
 	})
 	return pa
 }
 
-func (p *ProcessStats) GetTopMem() []*ProcessCounters {
+func (p *ProcessStats) TopMemUsed() []*ProcessMetrics {
 	pa := p.processesArray()
+	to := time.Now()
+	from := to.Add(-p.ioLoadRateTimeSpan)
 	sort.Slice(pa, func(i, j int) bool {
 		pi := pa[i]
 		pj := pa[j]
 
-		vi, _ := pi.MemoryTotal.GetLastValue()
-		vj, _ := pj.MemoryTotal.GetLastValue()
+		vi, _ := pi.MemoryTotal.Avg(from, to)
+		vj, _ := pj.MemoryTotal.Avg(from, to)
 
-		return vj.Value < vi.Value
+		return vj < vi
 	})
 	return pa
 }
 
-func (p *ProcessStats) GetTopFD() []*ProcessCounters {
+func (p *ProcessStats) TopFD() []*ProcessMetrics {
 	pa := p.processesArray()
+	to := time.Now()
+	from := to.Add(-p.ioLoadRateTimeSpan)
 	sort.Slice(pa, func(i, j int) bool {
 		pi := pa[i]
 		pj := pa[j]
 
-		vi, _ := pi.FD.GetLastValue()
-		vj, _ := pj.FD.GetLastValue()
+		vi, _ := pi.FD.Avg(from, to)
+		vj, _ := pj.FD.Avg(from, to)
 
-		return vj.Value < vi.Value
+		return vj < vi
 	})
 	return pa
 }
 
-func (p *ProcessStats) GetTopNetIOBytes(recv bool) []*ProcessCounters {
+func (p *ProcessStats) TopNetByteRate(recv bool) []*ProcessMetrics {
 	pa := p.processesArray()
 	sort.Slice(pa, func(i, j int) bool {
 		pi := pa[i]
 		pj := pa[j]
 
 		if recv {
-			ri, _ := pi.TotalNetIOCounters.BytesRecv.Timeseries.GetLastValue()
-			rj, _ := pj.TotalNetIOCounters.BytesRecv.Timeseries.GetLastValue()
-			return rj.Value < ri.Value
+			ri, _ := pi.TotalNetIOCounters.BytesRecv.Rate(p.ioLoadRateTimeSpan)
+			rj, _ := pj.TotalNetIOCounters.BytesRecv.Rate(p.ioLoadRateTimeSpan)
+			return rj < ri
 		}
 
-		si, _ := pi.TotalNetIOCounters.BytesSent.Timeseries.GetLastValue()
-		sj, _ := pj.TotalNetIOCounters.BytesSent.Timeseries.GetLastValue()
-		return sj.Value < si.Value
+		si, _ := pi.TotalNetIOCounters.BytesSent.Rate(p.ioLoadRateTimeSpan)
+		sj, _ := pj.TotalNetIOCounters.BytesSent.Rate(p.ioLoadRateTimeSpan)
+		return sj < si
 	})
 	return pa
 }
 
-func (p *ProcessStats) GetTopNetIOErrors(in bool) []*ProcessCounters {
+func (p *ProcessStats) TopNetErrRate(in bool) []*ProcessMetrics {
 	pa := p.processesArray()
 	sort.Slice(pa, func(i, j int) bool {
 		pi := pa[i]
 		pj := pa[j]
 
 		if in {
-			ri, _ := pi.TotalNetIOCounters.ErrIn.Timeseries.GetLastValue()
-			rj, _ := pj.TotalNetIOCounters.ErrIn.Timeseries.GetLastValue()
-			return rj.Value < ri.Value
+			ri, _ := pi.TotalNetIOCounters.ErrIn.Rate(p.ioLoadRateTimeSpan)
+			rj, _ := pj.TotalNetIOCounters.ErrIn.Rate(p.ioLoadRateTimeSpan)
+			return rj < ri
 		}
 
-		si, _ := pi.TotalNetIOCounters.ErrOut.Timeseries.GetLastValue()
-		sj, _ := pj.TotalNetIOCounters.ErrOut.Timeseries.GetLastValue()
-		return sj.Value < si.Value
+		si, _ := pi.TotalNetIOCounters.ErrOut.Rate(p.ioLoadRateTimeSpan)
+		sj, _ := pj.TotalNetIOCounters.ErrOut.Rate(p.ioLoadRateTimeSpan)
+		return sj < si
 	})
 	return pa
 }
 
-func (p *ProcessStats) processesArray() []*ProcessCounters {
-	pa := make([]*ProcessCounters, 0)
+func (p *ProcessStats) TopNetConnCount() []*ProcessMetrics {
+	pa := p.processesArray()
+	to := time.Now()
+	from := to.Add(-p.ioLoadRateTimeSpan)
+	sort.Slice(pa, func(i, j int) bool {
+		pi := pa[i]
+		pj := pa[j]
+
+		si, _ := pi.Connections.Avg(from, to)
+		sj, _ := pj.Connections.Avg(from, to)
+		return sj < si
+	})
+	return pa
+}
+
+func (p *ProcessStats) processesArray() []*ProcessMetrics {
+	pa := make([]*ProcessMetrics, 0)
 	for _, v := range p.Processes {
 		pa = append(pa, v)
 	}

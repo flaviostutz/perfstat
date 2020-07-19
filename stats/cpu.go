@@ -22,21 +22,6 @@ type CPUTimes struct {
 	Steal  signalutils.Timeseries
 }
 
-func CPUAvgPerc(ts *signalutils.Timeseries, loadTime time.Duration) (float64, bool) {
-	v1, ok := ts.GetValue(time.Now().Add(-loadTime))
-	if !ok {
-		return -1, false
-	}
-	v2, ok := ts.GetLastValue()
-	if !ok {
-		return -1, false
-	}
-	//percent of time with load
-	td := v2.Time.Sub(v1.Time).Seconds()
-	vd := v2.Value - v1.Value
-	return vd / td, true
-}
-
 func NewCPUStats(timeseriesMaxSpan time.Duration, sampleFreq float64) *CPUStats {
 	logrus.Tracef("CPU Stats: initializing...")
 
@@ -73,11 +58,11 @@ func newCPUTimes(tsDuration time.Duration) *CPUTimes {
 }
 
 func addCPUStats(cpu *cpu.TimesStat, cpuTimes *CPUTimes, cpus float64) {
-	cpuTimes.Idle.AddSample(cpu.Idle / cpus)
-	cpuTimes.System.AddSample(cpu.System / cpus)
-	cpuTimes.User.AddSample(cpu.User / cpus)
-	cpuTimes.IOWait.AddSample(cpu.Iowait / cpus)
-	cpuTimes.Steal.AddSample(cpu.Steal / cpus)
+	cpuTimes.Idle.Add(cpu.Idle / cpus)
+	cpuTimes.System.Add(cpu.System / cpus)
+	cpuTimes.User.Add(cpu.User / cpus)
+	cpuTimes.IOWait.Add(cpu.Iowait / cpus)
+	cpuTimes.Steal.Add(cpu.Steal / cpus)
 	// logrus.Debugf("cpustats=%s", cpu.String())
 }
 

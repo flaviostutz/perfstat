@@ -12,19 +12,19 @@ func TestMemBasic(t *testing.T) {
 	s := NewMemStats(60*time.Second, 2)
 	time.Sleep(5 * time.Second)
 
-	v, ok := s.Total.GetLastValue()
+	v, ok := s.Total.Last()
 	assert.True(t, ok)
 	assert.GreaterOrEqualf(t, v.Value, 1000.0, "")
 
-	v, ok = s.Free.GetLastValue()
+	v, ok = s.Free.Last()
 	assert.True(t, ok)
 	assert.GreaterOrEqualf(t, v.Value, 1000.0, "")
 
-	v, ok = s.Used.GetLastValue()
+	v, ok = s.Used.Last()
 	assert.True(t, ok)
 	assert.GreaterOrEqualf(t, v.Value, 1000.0, "")
 
-	v, ok = s.Available.GetLastValue()
+	v, ok = s.Available.Last()
 	assert.True(t, ok)
 	assert.GreaterOrEqualf(t, v.Value, 1000.0, "")
 

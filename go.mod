@@ -4,7 +4,7 @@ go 1.14
 
 require (
 	github.com/StackExchange/wmi v0.0.0-20190523213315-cbe66965904d // indirect
-	github.com/flaviostutz/signalutils v1.6.0
+	github.com/flaviostutz/signalutils v1.7.0
 	github.com/go-ole/go-ole v1.2.4 // indirect
 	github.com/google/pprof v0.0.0-20200708004538-1a94d8640e99 // indirect
 	github.com/ianlancetaylor/demangle v0.0.0-20200715173712-053cf528c12f // indirect

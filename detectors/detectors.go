@@ -18,29 +18,32 @@ type StatsType struct {
 	CPUStats     *stats.CPUStats
 	ProcessStats *stats.ProcessStats
 	MemStats     *stats.MemStats
+	DiskStats    *stats.DiskStats
 }
 
 //NewOptions create a new default options
 func NewOptions() Options {
 	return Options{
-		LowCPUPercRange:         [2]float64{0.70, 0.95},
-		LowMemPercRange:         [2]float64{0.70, 0.95},
+		HighCPUPercRange:        [2]float64{0.70, 0.95},
+		HighCPUWaitPercRange:    [2]float64{0.05, 0.50},
+		HighMemPercRange:        [2]float64{0.70, 0.95},
 		LowDiskPercRange:        [2]float64{0.70, 0.90},
 		LowFileHandlesPercRange: [2]float64{0.70, 0.90},
 		CPULoadAvgDuration:      1 * time.Minute,
-		IORateSpan:              1 * time.Minute,
+		IORateLoadDuration:      1 * time.Minute,
 	}
 }
 
 //Options performance analysis options
 type Options struct {
 	Loglevel                string
-	LowCPUPercRange         [2]float64
-	LowMemPercRange         [2]float64
+	HighCPUPercRange        [2]float64
+	HighCPUWaitPercRange    [2]float64
+	HighMemPercRange        [2]float64
 	LowDiskPercRange        [2]float64
 	LowFileHandlesPercRange [2]float64
 	CPULoadAvgDuration      time.Duration
-	IORateSpan              time.Duration
+	IORateLoadDuration      time.Duration
 }
 
 //Resource a computational resource
@@ -107,8 +110,9 @@ func StartDetections() {
 	if !Started {
 		ActiveStats = &StatsType{}
 		ActiveStats.CPUStats = stats.NewCPUStats(5*time.Minute, 1)
-		ActiveStats.ProcessStats = stats.NewProcessStats(1*time.Minute, 1)
+		ActiveStats.ProcessStats = stats.NewProcessStats(1*time.Minute, 2*time.Minute, 1*time.Minute, 1)
 		ActiveStats.MemStats = stats.NewMemStats(30*time.Minute, 1)
+		ActiveStats.DiskStats = stats.NewDiskStats(30*time.Minute, 1*time.Minute, 1)
 		Started = true
 	}
 }

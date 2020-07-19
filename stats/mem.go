@@ -56,13 +56,13 @@ func (m *MemStats) memStep() error {
 		logrus.Warningf("Cannot initilize swap stats. err=%s", err)
 	}
 
-	m.Total.AddSample(float64(ms.Total))
-	m.Used.AddSample(float64(ms.Used))
-	m.Available.AddSample(float64(ms.Available))
-	m.Free.AddSample(float64(ms.Free))
-	m.SwapTotal.AddSample(float64(ss.Total))
-	m.SwapUsed.AddSample(float64(ss.Used))
-	m.SwapFree.AddSample(float64(ss.Free))
+	m.Total.Add(float64(ms.Total))
+	m.Used.Add(float64(ms.Used))
+	m.Available.Add(float64(ms.Available))
+	m.Free.Add(float64(ms.Free))
+	m.SwapTotal.Add(float64(ss.Total))
+	m.SwapUsed.Add(float64(ss.Used))
+	m.SwapFree.Add(float64(ss.Free))
 	m.SwapIn.Set(float64(ss.Sin))
 	m.SwapOut.Set(float64(ss.Sout))
 
