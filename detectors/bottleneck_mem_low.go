@@ -16,9 +16,9 @@ func init() {
 
 		issues := make([]Issue, 0)
 
-		total, ok := ActiveStats.MemStats.Total.Last()
+		total := ActiveStats.MemStats.Total
 
-		load := used.Value / total.Value
+		load := used.Value / float64(total)
 		score := criticityScore(load, opt.HighMemPercRange)
 		logrus.Tracef("mem-low load=%.2f criticityScore=%.2f", load, score)
 		if score > 0 {

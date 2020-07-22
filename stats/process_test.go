@@ -12,7 +12,7 @@ import (
 
 func TestProcessStatsBasic(t *testing.T) {
 	logrus.SetLevel(logrus.DebugLevel)
-	ps := NewProcessStats(120*time.Second, 1*time.Second, 1*time.Second, 1)
+	ps := NewProcessStats(120*time.Second, 1*time.Second, 1*time.Second, 1*time.Second, 1.0)
 	time.Sleep(4 * time.Second)
 	assert.GreaterOrEqual(t, len(ps.Processes), 1)
 	for _, p := range ps.Processes {

@@ -73,41 +73,39 @@ curl localhost:8880/metrics
 * Low idle CPU (overall) OK
   * top cpu eater processes OK
   * high steal cpu OK
-* Low idle CPU (single CPU)
-  * top cpu eater processes
+* Low idle CPU (single CPU) OK
+  * top cpu eater processes OK
 * High CPU wait (waiting for IO) OK
   * top io waiter processes OK
   * top "waited" disks OK
-* Low available open files descriptors
-  * top process by open files
 * Disk nr of block read/writes seems to be in a ceil limit OK
-  * top disk eater processes
+  * top disk eater processes OK
 * Disk bandwidth of read/writes seems to be in a ceil limit OK
-  * top disk eater processes
-* Network interface bandwidth seems to be in a ceil limit
-  * top network bandwidth eater processes
-* Network interface pps seems to be in a ceil limit
-  * top network pps eater processes
+  * top disk eater processes OK
+* Network interface bandwidth seems to be in a ceil limit OK
+  * top network bandwidth eater processes OK
+* Network interface pps seems to be in a ceil limit OK
+  * top network pps eater processes OK
 
 ### Risks (may cause problems)
 
-* Low RAM
-  * top ram eater processes
-* Low Disk space
-  * mapped device with lowest space
-* Low Disk inodes
-  * mapped device with lowest inodes
-* Low available files to be open (ulimit)
-  * top files open eater processes
-* RAM memory growing linearly for process - there maybe a memory leak
-  * process with growing memory
-* High error rate in NIC
-  * show processes with most net errors
-
-### Enhancements
-
-* High swap IO - few RAM, may slow down system by using too much disk
-* High %util in disk - disk is being hammered and may not handle well spikes when needed
+* Low RAM OK
+  * top ram eater processes OK
+* Low Disk space OK
+  * mapped device with lowest space OK
+* Low Disk inodes OK
+  * mapped device with lowest inodes OK
+* Low available open files descriptors OK
+  * top process by open files OK
+* RAM memory growing linearly for process - there maybe a memory leak OK
+  * process with growing memory OK
+* High error rate in NIC OK
+  * show processes with most net errors OK
+* High swap IO OK
+  * Top process with swap OK
+  * "Few RAM, may slow down system by using too much disk"
+* High %util in disk - disk is being hammered and may not handle well spikes when needed OK
+  * show processes with high disk util OK
 
 ### Insights (top 5)
 
@@ -148,3 +146,4 @@ go tool pprof -http 0.0.0.0:5050 /tmp/cpu.prof
 * https://www.cyberciti.biz/tips/linux-resource-utilization-to-detect-system-bottlenecks.html
 * http://web.archive.org/web/20101028025942/https://anchor.com.au/hosting/development/HuntingThePerformanceWumpus
 * https://www.tecmint.com/command-line-tools-to-monitor-linux-performance/
+* https://www.netadmintools.com/art295.html

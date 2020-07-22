@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/flaviostutz/perfstat/stats"
+	"github.com/flaviostutz/signalutils"
 	"github.com/sirupsen/logrus"
 )
 
@@ -28,11 +29,19 @@ func NewOptions() Options {
 		HighCPUPercRange:        [2]float64{0.70, 0.95},
 		HighCPUWaitPercRange:    [2]float64{0.05, 0.50},
 		HighMemPercRange:        [2]float64{0.70, 0.95},
+		HighSwapBpsRange:        [2]float64{10000000, 100000000},
 		LowDiskPercRange:        [2]float64{0.70, 0.90},
+		HighDiskUtilPercRange:   [2]float64{0.70, 0.90},
 		LowFileHandlesPercRange: [2]float64{0.70, 0.90},
+		FDUsedRange:             [2]float64{0.6, 0.9},
+		NICErrorsRange:          [2]float64{1, 10},
+		DefaultSampleFreq:       1.0,
+		DefaultTimeseriesSize:   30 * time.Minute,
 		CPULoadAvgDuration:      1 * time.Minute,
 		IORateLoadDuration:      1 * time.Minute,
 		IOLimitsSpan:            1 * time.Minute,
+		MemAvgDuration:          1 * time.Minute,
+		MemLeakDuration:         20 * time.Minute,
 	}
 }
 
@@ -44,8 +53,16 @@ type Options struct {
 	HighMemPercRange        [2]float64
 	LowDiskPercRange        [2]float64
 	LowFileHandlesPercRange [2]float64
+	FDUsedRange             [2]float64
+	NICErrorsRange          [2]float64
+	HighSwapBpsRange        [2]float64
+	HighDiskUtilPercRange   [2]float64
+	DefaultSampleFreq       float64
+	DefaultTimeseriesSize   time.Duration
 	CPULoadAvgDuration      time.Duration
 	IORateLoadDuration      time.Duration
+	MemAvgDuration          time.Duration
+	MemLeakDuration         time.Duration
 	IOLimitsSpan            time.Duration
 }
 
@@ -79,6 +96,8 @@ type Issue struct {
 	Related []Resource
 	//Message text indicating the issue details
 	Message string
+	//InfoURL contains more information on how to deal with the issue
+	InfoURL string
 }
 
 func (i *Issue) String() string {
@@ -109,14 +128,14 @@ func SetLogLevel(level logrus.Level) {
 	logrus.SetLevel(level)
 }
 
-func StartDetections() {
+func StartDetections(opt Options) {
 	if !Started {
 		ActiveStats = &StatsType{}
-		ActiveStats.CPUStats = stats.NewCPUStats(5*time.Minute, 1)
-		ActiveStats.ProcessStats = stats.NewProcessStats(1*time.Minute, 2*time.Minute, 1*time.Minute, 1)
-		ActiveStats.MemStats = stats.NewMemStats(30*time.Minute, 1)
-		ActiveStats.DiskStats = stats.NewDiskStats(30*time.Minute, 1*time.Minute, 1)
-		ActiveStats.NetStats = stats.NewNetStats(30*time.Minute, 1*time.Minute, 1)
+		ActiveStats.CPUStats = stats.NewCPUStats(opt.DefaultTimeseriesSize, 1)
+		ActiveStats.ProcessStats = stats.NewProcessStats(opt.DefaultTimeseriesSize, opt.IORateLoadDuration, opt.CPULoadAvgDuration, opt.MemAvgDuration, opt.DefaultSampleFreq)
+		ActiveStats.MemStats = stats.NewMemStats(opt.DefaultTimeseriesSize, opt.DefaultSampleFreq)
+		ActiveStats.DiskStats = stats.NewDiskStats(opt.DefaultTimeseriesSize, opt.IORateLoadDuration, opt.DefaultSampleFreq)
+		ActiveStats.NetStats = stats.NewNetStats(opt.DefaultTimeseriesSize, opt.IORateLoadDuration, opt.DefaultSampleFreq)
 		Started = true
 	}
 }
@@ -130,4 +149,17 @@ func StopDetections() {
 		ActiveStats.NetStats.Stop()
 		Started = false
 	}
+}
+
+func upperRateBoundaries(tcr *signalutils.TimeseriesCounterRate, from time.Time, to time.Time, opt *Options, meanHigher float64, criticityRange [2]float64) (cscore float64, meanRate float64) {
+	ts, ok := tcr.RateOverTime(opt.IORateLoadDuration, opt.IOLimitsSpan)
+	if !ok {
+		return 0, 0
+	}
+	sd, m := ts.StdDev(from, to)
+	if m > meanHigher {
+		stdDev := (sd / m)
+		return criticityScore(1.0-stdDev, criticityRange), m
+	}
+	return 0.0, m
 }

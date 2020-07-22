@@ -14,6 +14,7 @@ type ProcessStats struct {
 	Processes          map[int32]*ProcessMetrics
 	timeseriesMaxSpan  time.Duration
 	ioLoadRateTimeSpan time.Duration
+	memAvgTimeSpan     time.Duration
 	cpuLoadTimeSpan    time.Duration
 	worker             *signalutils.Worker
 	lastCleanupTime    time.Time
@@ -48,17 +49,19 @@ type ProcessMetrics struct {
 	IOCounters         *IOCounters
 	MemoryPercent      signalutils.Timeseries
 	MemoryTotal        signalutils.Timeseries
+	MemorySwap         signalutils.Timeseries
 	FD                 signalutils.Timeseries
 	OpenFiles          signalutils.Timeseries
 }
 
-func NewProcessStats(timeseriesMaxSpan time.Duration, ioLoadRateTimeSpan time.Duration, cpuLoadTimeSpan time.Duration, sampleFreq float64) *ProcessStats {
+func NewProcessStats(timeseriesMaxSpan time.Duration, ioLoadRateTimeSpan time.Duration, cpuLoadTimeSpan time.Duration, memAvgTimeSpan time.Duration, sampleFreq float64) *ProcessStats {
 	logrus.Tracef("Process Stats: initializing...")
 	ps := &ProcessStats{
 		Processes:          make(map[int32]*ProcessMetrics),
 		ioLoadRateTimeSpan: ioLoadRateTimeSpan,
 		cpuLoadTimeSpan:    cpuLoadTimeSpan,
 		timeseriesMaxSpan:  timeseriesMaxSpan,
+		memAvgTimeSpan:     memAvgTimeSpan,
 	}
 	signalutils.StartWorker("process", ps.processStep, sampleFreq/2, sampleFreq, true)
 	logrus.Debugf("Process Stats: running")
@@ -130,6 +133,7 @@ func (ps *ProcessStats) processStep() error {
 			proc.OpenFiles = signalutils.NewTimeseries(ps.timeseriesMaxSpan)
 			proc.MemoryPercent = signalutils.NewTimeseries(ps.timeseriesMaxSpan)
 			proc.MemoryTotal = signalutils.NewTimeseries(ps.timeseriesMaxSpan)
+			proc.MemorySwap = signalutils.NewTimeseries(ps.timeseriesMaxSpan)
 
 			ps.Processes[p.Pid] = proc
 		}
@@ -218,6 +222,7 @@ func addProcessStats(p *process.Process, proc *ProcessMetrics, timeseriesMaxSpan
 		logrus.Warnf("Error getting process MemoryInfo for pid=%d; err=%s", p.Pid, err)
 	} else {
 		proc.MemoryTotal.Add(float64(mi.RSS))
+		proc.MemorySwap.Add(float64(mi.Swap))
 	}
 
 	//file descriptors
@@ -338,6 +343,22 @@ func (p *ProcessStats) TopMemUsed() []*ProcessMetrics {
 	return pa
 }
 
+func (p *ProcessStats) TopMemSwap() []*ProcessMetrics {
+	pa := p.processesArray()
+	to := time.Now()
+	from := to.Add(-p.memAvgTimeSpan)
+	sort.Slice(pa, func(i, j int) bool {
+		pi := pa[i]
+		pj := pa[j]
+
+		vi, _ := pi.MemorySwap.Avg(from, to)
+		vj, _ := pj.MemorySwap.Avg(from, to)
+
+		return vj < vi
+	})
+	return pa
+}
+
 func (p *ProcessStats) TopFD() []*ProcessMetrics {
 	pa := p.processesArray()
 	to := time.Now()
@@ -368,6 +389,25 @@ func (p *ProcessStats) TopNetByteRate(recv bool) []*ProcessMetrics {
 
 		si, _ := pi.TotalNetIOCounters.BytesSent.Rate(p.ioLoadRateTimeSpan)
 		sj, _ := pj.TotalNetIOCounters.BytesSent.Rate(p.ioLoadRateTimeSpan)
+		return sj < si
+	})
+	return pa
+}
+
+func (p *ProcessStats) TopNetPacketRate(recv bool) []*ProcessMetrics {
+	pa := p.processesArray()
+	sort.Slice(pa, func(i, j int) bool {
+		pi := pa[i]
+		pj := pa[j]
+
+		if recv {
+			ri, _ := pi.TotalNetIOCounters.PacketsRecv.Rate(p.ioLoadRateTimeSpan)
+			rj, _ := pj.TotalNetIOCounters.PacketsRecv.Rate(p.ioLoadRateTimeSpan)
+			return rj < ri
+		}
+
+		si, _ := pi.TotalNetIOCounters.PacketsSent.Rate(p.ioLoadRateTimeSpan)
+		sj, _ := pj.TotalNetIOCounters.PacketsSent.Rate(p.ioLoadRateTimeSpan)
 		return sj < si
 	})
 	return pa

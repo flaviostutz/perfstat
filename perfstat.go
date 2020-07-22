@@ -20,7 +20,7 @@ func StartPerfstat(opt detectors.Options) Perfstat {
 	p := Perfstat{
 		opt: opt,
 	}
-	detectors.StartDetections()
+	detectors.StartDetections(opt)
 	return p
 }
 

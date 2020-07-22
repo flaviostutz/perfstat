@@ -4,14 +4,13 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/flaviostutz/signalutils"
 	"github.com/sirupsen/logrus"
 )
 
 func init() {
 	RegisterDetector(func(opt *Options) []Issue {
 		to := time.Now()
-		from := to.Add(-opt.IOLimitsSpan)
+		fromLimit := to.Add(-opt.IOLimitsSpan)
 
 		issues := make([]Issue, 0)
 
@@ -20,9 +19,33 @@ func init() {
 			//TODO add Dropped packets as a catalyser for this analysis?
 
 			//DISK LIMIT ON WRITE BPS
-			score, mean := upperRateBoundaries(&dm.WriteBytes, from, to, opt, 100000.0, [2]float64{0.8, 0.9})
+			score, mean := upperRateBoundaries(&dm.WriteBytes, fromLimit, to, opt, 100000.0, [2]float64{0.8, 0.9})
 			if score > 0 {
 				logrus.Tracef("disk-limit-wbps bps=%.2f criticityScore=%.2f", mean, score)
+
+				//get hungry processes
+				related := make([]Resource, 0)
+				for _, proc := range ActiveStats.ProcessStats.TopIOByteRate(false) {
+					if len(related) >= 3 {
+						break
+					}
+					rate, ok := proc.IOCounters.WriteBytes.Rate(opt.IORateLoadDuration)
+					if !ok {
+						logrus.Warnf("Couldn't get process write bps for disk on limits analysis")
+						continue
+					}
+					if rate < 10000 {
+						break
+					}
+					r := Resource{
+						Typ:           "process",
+						Name:          fmt.Sprintf("pid:%d", proc.Pid),
+						PropertyName:  "disk-write-bps",
+						PropertyValue: rate,
+					}
+					related = append(related, r)
+				}
+
 				issues = append(issues, Issue{
 					Typ:   "bottleneck",
 					ID:    "disk-limit-wbps",
@@ -33,13 +56,38 @@ func init() {
 						PropertyName:  "write-bps",
 						PropertyValue: mean,
 					},
+					Related: related,
 				})
 			}
 
 			//DISK LIMIT ON READ BPS
-			score, mean = upperRateBoundaries(&dm.ReadBytes, from, to, opt, 100000.0, [2]float64{0.8, 0.9})
+			score, mean = upperRateBoundaries(&dm.ReadBytes, fromLimit, to, opt, 100000.0, [2]float64{0.8, 0.9})
 			if score > 0 {
 				logrus.Tracef("disk-limit-rbps bps=%.2f criticityScore=%.2f", mean, score)
+
+				//get hungry processes
+				related := make([]Resource, 0)
+				for _, proc := range ActiveStats.ProcessStats.TopIOByteRate(true) {
+					if len(related) >= 3 {
+						break
+					}
+					rate, ok := proc.IOCounters.ReadBytes.Rate(opt.IORateLoadDuration)
+					if !ok {
+						logrus.Warnf("Couldn't get process read bps for disk on limits analysis")
+						continue
+					}
+					if rate < 10000 {
+						break
+					}
+					r := Resource{
+						Typ:           "process",
+						Name:          fmt.Sprintf("pid:%d", proc.Pid),
+						PropertyName:  "disk-read-bps",
+						PropertyValue: rate,
+					}
+					related = append(related, r)
+				}
+
 				issues = append(issues, Issue{
 					Typ:   "bottleneck",
 					ID:    "disk-limit-rbps",
@@ -50,13 +98,38 @@ func init() {
 						PropertyName:  "read-bps",
 						PropertyValue: mean,
 					},
+					Related: related,
 				})
 			}
 
 			//DISK LIMIT ON WRITE OPS
-			score, mean = upperRateBoundaries(&dm.WriteCount, from, to, opt, 100000.0, [2]float64{0.8, 0.9})
+			score, mean = upperRateBoundaries(&dm.WriteCount, fromLimit, to, opt, 100000.0, [2]float64{0.8, 0.9})
 			if score > 0 {
 				logrus.Tracef("disk-limit-wops ops=%.2f criticityScore=%.2f", mean, score)
+
+				//get hungry processes
+				related := make([]Resource, 0)
+				for _, proc := range ActiveStats.ProcessStats.TopIOOpRate(false) {
+					if len(related) >= 3 {
+						break
+					}
+					rate, ok := proc.IOCounters.WriteCount.Rate(opt.IORateLoadDuration)
+					if !ok {
+						logrus.Warnf("Couldn't get process write ops for disk on limits analysis")
+						continue
+					}
+					if rate < 10 {
+						break
+					}
+					r := Resource{
+						Typ:           "process",
+						Name:          fmt.Sprintf("pid:%d", proc.Pid),
+						PropertyName:  "disk-write-ops",
+						PropertyValue: rate,
+					}
+					related = append(related, r)
+				}
+
 				issues = append(issues, Issue{
 					Typ:   "bottleneck",
 					ID:    "disk-limit-wops",
@@ -71,9 +144,33 @@ func init() {
 			}
 
 			//DISK LIMIT ON READ OPS
-			score, mean = upperRateBoundaries(&dm.ReadCount, from, to, opt, 100000.0, [2]float64{0.8, 0.9})
+			score, mean = upperRateBoundaries(&dm.ReadCount, fromLimit, to, opt, 100000.0, [2]float64{0.8, 0.9})
 			if score > 0 {
 				logrus.Tracef("disk-limit-rops ops=%.2f criticityScore=%.2f", mean, score)
+
+				//get hungry processes
+				related := make([]Resource, 0)
+				for _, proc := range ActiveStats.ProcessStats.TopIOOpRate(true) {
+					if len(related) >= 3 {
+						break
+					}
+					rate, ok := proc.IOCounters.WriteCount.Rate(opt.IORateLoadDuration)
+					if !ok {
+						logrus.Warnf("Couldn't get process read ops for disk on limits analysis")
+						continue
+					}
+					if rate < 10 {
+						break
+					}
+					r := Resource{
+						Typ:           "process",
+						Name:          fmt.Sprintf("pid:%d", proc.Pid),
+						PropertyName:  "disk-read-ops",
+						PropertyValue: rate,
+					}
+					related = append(related, r)
+				}
+
 				issues = append(issues, Issue{
 					Typ:   "bottleneck",
 					ID:    "disk-limit-rops",
@@ -86,22 +183,8 @@ func init() {
 					},
 				})
 			}
-
 		}
 
 		return issues
 	})
-}
-
-func upperRateBoundaries(tcr *signalutils.TimeseriesCounterRate, from time.Time, to time.Time, opt *Options, meanHigher float64, criticityRange [2]float64) (cscore float64, meanRate float64) {
-	ts, ok := tcr.RateOverTime(opt.IORateLoadDuration, opt.IOLimitsSpan)
-	if !ok {
-		return 0, 0
-	}
-	sd, m := ts.StdDev(from, to)
-	if m > meanHigher {
-		stdDev := (sd / m)
-		return criticityScore(1.0-stdDev, criticityRange), m
-	}
-	return 0.0, m
 }

@@ -1,7 +1,10 @@
 package stats
 
 import (
+	"io/ioutil"
 	"sort"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/flaviostutz/signalutils"
@@ -12,9 +15,15 @@ import (
 type DiskStats struct {
 	Disks              map[string]*DiskMetrics
 	Partitions         map[string]*PartitionMetrics
+	FD                 *FDMetrics
 	worker             *signalutils.Worker
 	timeseriesSize     time.Duration
 	ioRateLoadDuration time.Duration
+}
+
+type FDMetrics struct {
+	UsedFD signalutils.Timeseries
+	MaxFD  int64
 }
 
 type DiskMetrics struct {
@@ -33,9 +42,9 @@ type DiskMetrics struct {
 type PartitionMetrics struct {
 	Path        string
 	Fstype      string
-	Total       signalutils.Timeseries
+	Total       uint64
 	Free        signalutils.Timeseries
-	InodesTotal signalutils.Timeseries
+	InodesTotal uint64
 	InodesFree  signalutils.Timeseries
 }
 
@@ -43,8 +52,12 @@ func NewDiskStats(timeseriesSize time.Duration, ioRateLoadDuration time.Duration
 	logrus.Tracef("Disk Stats: initializing...")
 
 	d := &DiskStats{
-		Disks:              make(map[string]*DiskMetrics),
-		Partitions:         make(map[string]*PartitionMetrics),
+		Disks:      make(map[string]*DiskMetrics),
+		Partitions: make(map[string]*PartitionMetrics),
+		FD: &FDMetrics{
+			UsedFD: signalutils.NewTimeseries(timeseriesSize),
+			MaxFD:  52427,
+		},
 		timeseriesSize:     timeseriesSize,
 		ioRateLoadDuration: ioRateLoadDuration,
 	}
@@ -56,6 +69,15 @@ func NewDiskStats(timeseriesSize time.Duration, ioRateLoadDuration time.Duration
 }
 
 func (d *DiskStats) diskStep() error {
+
+	//fd stats
+	usedFD, maxFD, err := FDStats()
+	if err != nil {
+		logrus.Tracef("FD stats works only on Linux systems. err=%s", err)
+	} else {
+		d.FD.MaxFD = maxFD
+		d.FD.UsedFD.Add(float64(usedFD))
+	}
 
 	//stats per disk
 	ioc, err := disk.IOCounters()
@@ -107,9 +129,9 @@ func (d *DiskStats) diskStep() error {
 			pm = &PartitionMetrics{
 				Path:        p.Mountpoint,
 				Fstype:      p.Fstype,
-				Total:       signalutils.NewTimeseries(d.timeseriesSize),
+				Total:       0,
 				Free:        signalutils.NewTimeseries(d.timeseriesSize),
-				InodesTotal: signalutils.NewTimeseries(d.timeseriesSize),
+				InodesTotal: 0,
 				InodesFree:  signalutils.NewTimeseries(d.timeseriesSize),
 			}
 			d.Partitions[p.Mountpoint] = pm
@@ -121,9 +143,9 @@ func (d *DiskStats) diskStep() error {
 			return err
 		}
 		pm.Free.Add(float64(pu.Free))
-		pm.Total.Add(float64(pu.Total))
+		pm.Total = pu.Total
 		pm.InodesFree.Add(float64(pu.InodesFree))
-		pm.InodesTotal.Add(float64(pu.InodesTotal))
+		pm.InodesTotal = pu.InodesTotal
 	}
 
 	return nil
@@ -200,6 +222,29 @@ func (d *DiskStats) partitionArray() []*PartitionMetrics {
 		dms = append(dms, v)
 	}
 	return dms
+}
+
+func FDStats() (usedFD int64, maxFD int64, err error) {
+	filenrb, err := ioutil.ReadFile("/proc/sys/fs/file-nr")
+	if err != nil {
+		return -1, -1, err
+	}
+	fm := string(filenrb)
+	filenr := strings.Fields(fm)
+
+	fr0, err := strconv.ParseInt(filenr[0], 10, 64)
+	if err != nil {
+		return -1, -1, err
+	}
+	fr1, err := strconv.ParseInt(filenr[1], 10, 64)
+	if err != nil {
+		return -1, -1, err
+	}
+	fr2, err := strconv.ParseInt(filenr[2], 10, 64)
+	if err != nil {
+		return -1, -1, err
+	}
+	return (fr0 - fr1), fr2, nil
 }
 
 func (d *DiskStats) Stop() {
