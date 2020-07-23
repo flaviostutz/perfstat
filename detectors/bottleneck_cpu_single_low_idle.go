@@ -2,58 +2,60 @@ package detectors
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/flaviostutz/perfstat/stats"
-	"github.com/sirupsen/logrus"
 )
 
 func init() {
-	RegisterDetector(func(opt *Options) []Issue {
+	RegisterDetector(func(opt *Options) []DetectionResult {
 
-		issues := make([]Issue, 0)
+		issues := make([]DetectionResult, 0)
 
 		for cpui, cpu := range ActiveStats.CPUStats.CPU {
+
+			r := DetectionResult{
+				Typ:  "bottleneck",
+				ID:   "cpu-single-low-idle",
+				When: time.Now(),
+			}
+
 			idle, ok := stats.TimeLoadPerc(&cpu.Idle, opt.CPULoadAvgDuration)
 			if !ok {
-				logrus.Debugf("Not enough data for single CPU analysis")
-				return []Issue{}
+				r.Message = notEnoughDataMessage(opt.CPULoadAvgDuration)
+				return []DetectionResult{r}
 			}
 
 			load := 1.0 - idle
-			score := criticityScore(load, opt.HighCPUPercRange)
-			logrus.Tracef("cpu-single-low load=%.2f criticityScore=%.2f", load, score)
+			r.Score = criticityScore(load, opt.HighCPUPercRange)
 
-			if score > 0 {
+			r.Res = Resource{
+				Typ:           "cpu",
+				Name:          fmt.Sprintf("cpu:%d", cpui),
+				PropertyName:  "load-perc",
+				PropertyValue: load,
+			}
+
+			if r.Score > 0 {
 				//get hungry processes
-				related := make([]Resource, 0)
+				r.Related = make([]Resource, 0)
 				for _, proc := range ActiveStats.ProcessStats.TopCPULoad() {
-					if len(related) >= 3 {
+					if len(r.Related) >= 3 {
 						break
 					}
 					ps, _ := stats.TimeLoadPerc(&proc.CPUTimes.System, opt.CPULoadAvgDuration)
 					pu, _ := stats.TimeLoadPerc(&proc.CPUTimes.User, opt.CPULoadAvgDuration)
-					r := Resource{
+					res := Resource{
 						Typ:           "process",
 						Name:          fmt.Sprintf("pid:%d", proc.Pid),
 						PropertyName:  "cpu-all-load-perc",
 						PropertyValue: pu + ps,
 					}
-					related = append(related, r)
+					r.Related = append(r.Related, res)
 				}
-
-				issues = append(issues, Issue{
-					Typ:   "bottleneck",
-					ID:    "cpu-single-low-idle",
-					Score: score,
-					Res: Resource{
-						Typ:           "cpu",
-						Name:          fmt.Sprintf("cpu:%d", cpui),
-						PropertyName:  "load-perc",
-						PropertyValue: load,
-					},
-					Related: related,
-				})
 			}
+
+			issues = append(issues, r)
 		}
 		return issues
 	})

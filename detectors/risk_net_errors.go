@@ -2,32 +2,45 @@ package detectors
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/sirupsen/logrus"
 )
 
 func init() {
-	RegisterDetector(func(opt *Options) []Issue {
-		issues := make([]Issue, 0)
+	RegisterDetector(func(opt *Options) []DetectionResult {
+
+		issues := make([]DetectionResult, 0)
 
 		for nname, nic := range ActiveStats.NetStats.NICs {
 
 			//NIC ERRORS IN
-			errRate, ok := nic.ErrIn.Rate(opt.IORateLoadDuration)
-			if !ok {
-				logrus.Tracef("Not enough data for net errors in analysis")
-				return []Issue{}
+			r := DetectionResult{
+				Typ:  "risk",
+				ID:   "net-high-errin",
+				When: time.Now(),
 			}
 
-			score := criticityScore(errRate, opt.NICErrorsRange)
-			logrus.Tracef("net-errors-in errInRate=%.2f criticityScore=%.2f", errRate, score)
+			errRate, ok := nic.ErrIn.Rate(opt.IORateLoadDuration)
+			if !ok {
+				r.Message = notEnoughDataMessage(opt.IORateLoadDuration)
+				return []DetectionResult{r}
+			}
 
-			if score > 0 {
+			r.Res = Resource{
+				Typ:           "net",
+				Name:          fmt.Sprintf("nic:%s", nname),
+				PropertyName:  "errin-pps",
+				PropertyValue: errRate,
+			}
 
+			r.Score = criticityScore(errRate, opt.NICErrorsRange)
+
+			if r.Score > 0 {
 				//get hungry processes
-				related := make([]Resource, 0)
+				r.Related = make([]Resource, 0)
 				for _, proc := range ActiveStats.ProcessStats.TopNetErrRate(true) {
-					if len(related) >= 3 {
+					if len(r.Related) >= 3 {
 						break
 					}
 					perr, ok := proc.TotalNetIOCounters.ErrIn.Rate(opt.IORateLoadDuration)
@@ -35,45 +48,44 @@ func init() {
 						logrus.Tracef("Couldn't get net err in for pid %d", proc.Pid)
 						continue
 					}
-					r := Resource{
+					res := Resource{
 						Typ:           "process",
 						Name:          fmt.Sprintf("pid:%d", proc.Pid),
 						PropertyName:  "net-errin-pps",
 						PropertyValue: perr,
 					}
-					related = append(related, r)
+					r.Related = append(r.Related, res)
 				}
-
-				issues = append(issues, Issue{
-					Typ:   "risk",
-					ID:    "net-high-errin",
-					Score: score,
-					Res: Resource{
-						Typ:           "net",
-						Name:          fmt.Sprintf("nic:%s", nname),
-						PropertyName:  "errin-pps",
-						PropertyValue: errRate,
-					},
-					Related: related,
-				})
 			}
+			issues = append(issues, r)
 
 			//NIC ERRORS OUT
-			errRate, ok = nic.ErrOut.Rate(opt.IORateLoadDuration)
-			if !ok {
-				logrus.Tracef("Not enough data for net errors out analysis")
-				return []Issue{}
+			r = DetectionResult{
+				Typ:  "risk",
+				ID:   "net-high-errout",
+				When: time.Now(),
 			}
 
-			score = criticityScore(errRate, opt.NICErrorsRange)
-			logrus.Tracef("net-errors-out errOutRate=%.2f criticityScore=%.2f", errRate, score)
+			errRate, ok = nic.ErrOut.Rate(opt.IORateLoadDuration)
+			if !ok {
+				r.Message = notEnoughDataMessage(opt.IORateLoadDuration)
+				return []DetectionResult{r}
+			}
 
-			if score > 0 {
+			r.Res = Resource{
+				Typ:           "net",
+				Name:          fmt.Sprintf("nic:%s", nname),
+				PropertyName:  "err-out-pps",
+				PropertyValue: errRate,
+			}
 
+			r.Score = criticityScore(errRate, opt.NICErrorsRange)
+
+			if r.Score > 0 {
 				//get hungry processes
-				related := make([]Resource, 0)
+				r.Related = make([]Resource, 0)
 				for _, proc := range ActiveStats.ProcessStats.TopNetErrRate(false) {
-					if len(related) >= 3 {
+					if len(r.Related) >= 3 {
 						break
 					}
 					perr, ok := proc.TotalNetIOCounters.ErrOut.Rate(opt.IORateLoadDuration)
@@ -81,28 +93,17 @@ func init() {
 						logrus.Tracef("Couldn't get net err out for pid %d", proc.Pid)
 						continue
 					}
-					r := Resource{
+					res := Resource{
 						Typ:           "process",
 						Name:          fmt.Sprintf("pid:%d", proc.Pid),
 						PropertyName:  "net-errout-pps",
 						PropertyValue: perr,
 					}
-					related = append(related, r)
+					r.Related = append(r.Related, res)
 				}
 
-				issues = append(issues, Issue{
-					Typ:   "risk",
-					ID:    "net-high-errout",
-					Score: score,
-					Res: Resource{
-						Typ:           "net",
-						Name:          fmt.Sprintf("nic:%s", nname),
-						PropertyName:  "err-out-pps",
-						PropertyValue: errRate,
-					},
-				})
 			}
-
+			issues = append(issues, r)
 		}
 		return issues
 	})

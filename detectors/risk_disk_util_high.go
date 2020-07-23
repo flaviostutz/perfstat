@@ -2,30 +2,43 @@ package detectors
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/flaviostutz/perfstat/stats"
 	"github.com/sirupsen/logrus"
 )
 
 func init() {
-	RegisterDetector(func(opt *Options) []Issue {
-		issues := make([]Issue, 0)
+	RegisterDetector(func(opt *Options) []DetectionResult {
+
+		issues := make([]DetectionResult, 0)
 
 		for dname, disk := range ActiveStats.DiskStats.Disks {
+			r := DetectionResult{
+				Typ:  "risk",
+				ID:   "disk-high-util",
+				When: time.Now(),
+			}
 
 			utilPerc, ok := stats.TimeLoadPerc(&disk.IoTime, opt.CPULoadAvgDuration)
 			if !ok {
-				logrus.Tracef("Not enough data for disk util analysis")
-				return []Issue{}
+				r.Message = notEnoughDataMessage(opt.CPULoadAvgDuration)
+				return []DetectionResult{r}
 			}
 
-			score := criticityScore(utilPerc, opt.HighCPUWaitPercRange)
-			logrus.Tracef("disk-util-load utilPerc=%.2f criticityScore=%.2f", utilPerc, score)
+			r.Res = Resource{
+				Typ:           "disk",
+				Name:          fmt.Sprintf("disk:%s", dname),
+				PropertyName:  "util-perc",
+				PropertyValue: utilPerc,
+			}
+
+			r.Score = criticityScore(utilPerc, opt.HighCPUWaitPercRange)
 
 			//get processes waiting for IOs
-			related := make([]Resource, 0)
+			r.Related = make([]Resource, 0)
 			for _, proc := range ActiveStats.ProcessStats.TopCPUIOWait() {
-				if len(related) >= 3 {
+				if len(r.Related) >= 3 {
 					break
 				}
 				iw, ok := stats.TimeLoadPerc(&proc.CPUTimes.IOWait, opt.CPULoadAvgDuration)
@@ -33,30 +46,15 @@ func init() {
 					logrus.Tracef("Couldn't get iowait time for pid %d", proc.Pid)
 					continue
 				}
-				r := Resource{
+				res := Resource{
 					Typ:           "process",
 					Name:          fmt.Sprintf("pid:%d", proc.Pid),
 					PropertyName:  "cpu-iowait-perc",
 					PropertyValue: iw,
 				}
-				related = append(related, r)
+				r.Related = append(r.Related, res)
 			}
-
-			if score > 0 {
-				issues = append(issues, Issue{
-					Typ:   "risk",
-					ID:    "disk-high-util",
-					Score: score,
-					Res: Resource{
-						Typ:           "disk",
-						Name:          fmt.Sprintf("disk:%s", dname),
-						PropertyName:  "util-perc",
-						PropertyValue: utilPerc,
-					},
-					Related: related,
-				})
-			}
-
+			issues = append(issues, r)
 		}
 		return issues
 	})

@@ -13,7 +13,7 @@ func TestMemBasic(t *testing.T) {
 	time.Sleep(5 * time.Second)
 
 	tot := s.Total
-	assert.GreaterOrEqualf(t, tot, 1000.0, "")
+	assert.GreaterOrEqualf(t, tot, uint64(1000), "")
 
 	v, ok := s.Free.Last()
 	assert.True(t, ok)

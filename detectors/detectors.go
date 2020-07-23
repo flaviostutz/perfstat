@@ -12,6 +12,7 @@ import (
 
 var (
 	Started     = false
+	Opt         Options
 	ActiveStats *StatsType
 )
 
@@ -82,30 +83,32 @@ func (r *Resource) String() string {
 	return fmt.Sprintf("type=%s name=%s prop=%s propv=%.2f", r.Typ, r.Name, r.PropertyName, r.PropertyValue)
 }
 
-//Issue detection results
-type Issue struct {
+//DetectionResult detection results
+type DetectionResult struct {
 	//Typ type of issue: bottleneck, risk, harm, lib-error
 	Typ string
 	//Id name of the issue. ex: low-available-cpu, disk-write-ceil
 	ID string
 	//Score how critical is this issue to the health of the system
 	Score float64
+	//Message text indicating the issue details
+	Message string
 	//Res resource directly related to the issue
 	Res Resource
 	//Related related resources to the issue (ex: for low CPU, place top 3 CPU processes)
 	Related []Resource
-	//Message text indicating the issue details
-	Message string
 	//InfoURL contains more information on how to deal with the issue
 	InfoURL string
+	//When time of detection process
+	When time.Time
 }
 
-func (i *Issue) String() string {
-	return fmt.Sprintf("type=%s id=%s score=%.2f resource=[%s]", i.Typ, i.ID, i.Score, i.Res.String())
+func (i *DetectionResult) String() string {
+	return fmt.Sprintf("type=%s id=%s score=%.2f resource=[%s] message=%s infoURL=%s", i.Typ, i.ID, i.Score, i.Res.String(), i.Message, i.InfoURL)
 }
 
 //DetectorFunc function that is called for detecting issues on the system
-type DetectorFunc func(*Options) []Issue
+type DetectorFunc func(*Options) []DetectionResult
 
 //DetectorFuncs detector functions
 var DetectorFuncs = make([]DetectorFunc, 0)
@@ -128,7 +131,7 @@ func SetLogLevel(level logrus.Level) {
 	logrus.SetLevel(level)
 }
 
-func StartDetections(opt Options) {
+func Start(opt Options) {
 	if !Started {
 		ActiveStats = &StatsType{}
 		ActiveStats.CPUStats = stats.NewCPUStats(opt.DefaultTimeseriesSize, 1)
@@ -136,11 +139,12 @@ func StartDetections(opt Options) {
 		ActiveStats.MemStats = stats.NewMemStats(opt.DefaultTimeseriesSize, opt.DefaultSampleFreq)
 		ActiveStats.DiskStats = stats.NewDiskStats(opt.DefaultTimeseriesSize, opt.IORateLoadDuration, opt.DefaultSampleFreq)
 		ActiveStats.NetStats = stats.NewNetStats(opt.DefaultTimeseriesSize, opt.IORateLoadDuration, opt.DefaultSampleFreq)
+		Opt = opt
 		Started = true
 	}
 }
 
-func StopDetections() {
+func Stop() {
 	if Started {
 		ActiveStats.CPUStats.Stop()
 		ActiveStats.ProcessStats.Stop()
@@ -162,4 +166,8 @@ func upperRateBoundaries(tcr *signalutils.TimeseriesCounterRate, from time.Time,
 		return criticityScore(1.0-stdDev, criticityRange), m
 	}
 	return 0.0, m
+}
+
+func notEnoughDataMessage(duration time.Duration) string {
+	return fmt.Sprintf("Not enough data for evaluation. min=%s", duration.String())
 }

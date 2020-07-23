@@ -13,7 +13,7 @@ import (
 func TestProcessStatsBasic(t *testing.T) {
 	logrus.SetLevel(logrus.DebugLevel)
 	ps := NewProcessStats(120*time.Second, 1*time.Second, 1*time.Second, 1*time.Second, 1.0)
-	time.Sleep(4 * time.Second)
+	time.Sleep(7 * time.Second)
 	assert.GreaterOrEqual(t, len(ps.Processes), 1)
 	for _, p := range ps.Processes {
 		if strings.Contains(p.Name, "test") || strings.Contains(p.Name, "go") {
