@@ -38,17 +38,23 @@ func TestRollingDetections(t *testing.T) {
 	p.SetLogLevel(logrus.DebugLevel)
 	time.Sleep(6 * time.Second)
 
+	for _, is := range p.curResults {
+		fmt.Printf("]]]] %s\n", is.String())
+	}
+
 	crit := p.TopCriticity()
 	for _, is := range crit {
-		fmt.Printf(">>>> %s", is.String())
+		fmt.Printf(">>>> %s\n", is.String())
 	}
+	fmt.Printf("\n\n\n")
 	time.Sleep(1 * time.Second)
 	for _, is := range crit {
-		fmt.Printf(">>>> %s", is.String())
+		fmt.Printf(">>>> %s\n", is.String())
 	}
+	fmt.Printf("\n\n\n")
 	time.Sleep(1 * time.Second)
 	for _, is := range crit {
-		fmt.Printf(">>>> %s", is.String())
+		fmt.Printf(">>>> %s\n", is.String())
 	}
 }
 

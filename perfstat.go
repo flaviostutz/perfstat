@@ -41,7 +41,6 @@ func Start(opt detectors.Options) *Perfstat {
 
 	logrus.Debugf("Starting issues tracker")
 	p.worker1 = signalutils.StartWorker("perfstat-detect", func() error {
-
 		result, err := p.DetectNow()
 		if err != nil {
 			return err
@@ -49,11 +48,10 @@ func Start(opt detectors.Options) *Perfstat {
 
 		p.observer = observer.Observer{}
 		p.observer.Open()
-
 		p.observer.Emit(result)
 
+		p.curResults = result
 		return nil
-
 	}, 0.5, 1, true)
 
 	return p
@@ -71,13 +69,18 @@ func (p *Perfstat) Watch(issueEvents chan IssueEvent) {
 	})
 }
 
-func (p *Perfstat) TopCriticity() []*detectors.DetectionResult {
-	da := make([]*detectors.DetectionResult, 0)
+func (p *Perfstat) TopCriticity() []detectors.DetectionResult {
+	da := make([]detectors.DetectionResult, 0)
 	for _, v := range p.curResults {
-		da = append(da, &v)
+		da = append(da, v)
 	}
 	sort.Slice(da, func(i, j int) bool {
-		return da[i].Score < da[j].Score
+		si := da[i].Score
+		sj := da[j].Score
+		if si == sj {
+			return da[i].Res.PropertyValue > da[j].Res.PropertyValue
+		}
+		return si > sj
 	})
 	return da
 }
@@ -91,9 +94,9 @@ func (p *Perfstat) DetectNow() ([]detectors.DetectionResult, error) {
 	logrus.Debugf("Perfstat DetectNow()")
 	for _, df := range detectors.DetectorFuncs {
 		r := df(&detectors.Opt)
-		for _, iss := range r {
-			logrus.Debugf("RESULT: %s", iss.String())
-		}
+		// for _, iss := range r {
+		// 	logrus.Debugf("RESULT: %s", iss.String())
+		// }
 		results = append(results, r...)
 	}
 	return results, nil

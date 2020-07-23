@@ -26,7 +26,19 @@ func init() {
 				return []DetectionResult{r}
 			}
 
-			usedPerc := (float64(total) - free.Value) / float64(total)
+			max := float64(total) + free.Value
+
+			if max == 0 {
+				r.Message = "partition size is zero"
+				r.Res = Resource{
+					Typ:  "disk",
+					Name: fmt.Sprintf("partition:%s", pname),
+				}
+				issues = append(issues, r)
+				continue
+			}
+
+			usedPerc := float64(total) / max
 
 			r.Res = Resource{
 				Typ:           "disk",
@@ -46,13 +58,26 @@ func init() {
 			}
 
 			total = part.InodesTotal
+
 			free, ok = part.InodesFree.Last()
 			if !ok {
 				r.Message = notEnoughDataMessage(10 * time.Second)
 				return []DetectionResult{r}
 			}
 
-			usedPerc = (float64(total) - free.Value) / float64(total)
+			max = float64(total) + free.Value
+
+			if max == 0 {
+				r.Message = "inodes max is zero"
+				r.Res = Resource{
+					Typ:  "disk",
+					Name: fmt.Sprintf("partition:%s", pname),
+				}
+				issues = append(issues, r)
+				continue
+			}
+
+			usedPerc = float64(total) / max
 
 			r.Score = criticityScore(usedPerc, opt.LowDiskPercRange)
 			r.Res = Resource{
