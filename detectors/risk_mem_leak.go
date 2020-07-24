@@ -22,6 +22,7 @@ func init() {
 		_, ok := ActiveStats.MemStats.Used.Get(from)
 		if !ok {
 			r.Message = notEnoughDataMessage(opt.MemLeakDuration)
+			r.Score = -1
 			return []DetectionResult{r}
 		}
 

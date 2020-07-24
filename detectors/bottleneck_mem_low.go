@@ -19,6 +19,7 @@ func init() {
 		used, ok := ActiveStats.MemStats.Used.Last()
 		if !ok {
 			r.Message = notEnoughDataMessage(opt.CPULoadAvgDuration)
+			r.Score = -1
 			return []DetectionResult{r}
 		}
 

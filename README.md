@@ -70,17 +70,17 @@ curl localhost:8880/metrics
 
 ### Bottlenecks (already a problem)
 
-* Low idle CPU (overall) OK
+* Low idle CPU (overall) OK TESTED
   * top cpu eater processes OK
   * high steal cpu OK
-* Low idle CPU (single CPU) OK
+* Low idle CPU (single CPU) OK TESTED
   * top cpu eater processes OK
-* High CPU wait (waiting for IO) OK
+* High CPU wait (waiting for IO) OK TESTED
   * top io waiter processes OK
   * top "waited" disks OK
-* Disk nr of block read/writes seems to be in a ceil limit OK
+* Disk nr of block read/writes seems to be in a ceil limit OK TESTED
   * top disk eater processes OK
-* Disk bandwidth of read/writes seems to be in a ceil limit OK
+* Disk bandwidth of read/writes seems to be in a ceil limit OK TESTED
   * top disk eater processes OK
 * Network interface bandwidth seems to be in a ceil limit OK
   * top network bandwidth eater processes OK
@@ -89,11 +89,11 @@ curl localhost:8880/metrics
 
 ### Risks (may cause problems)
 
-* Low RAM OK
+* Low RAM OK TESTED
   * top ram eater processes OK
-* Low Disk space OK
+* Low Disk space OK TESTED
   * mapped device with lowest space OK
-* Low Disk inodes OK
+* Low Disk inodes OK TESTED
   * mapped device with lowest inodes OK
 * Low available open files descriptors OK
   * top process by open files OK

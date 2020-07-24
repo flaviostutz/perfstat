@@ -156,7 +156,7 @@ func init() {
 				When: time.Now(),
 			}
 
-			score, mean = upperRateBoundaries(&nm.BytesSent, fromLimit, to, opt, 10000.0, [2]float64{0.8, 0.9})
+			score, mean = upperRateBoundaries(&nm.PacketsRecv, fromLimit, to, opt, 10000.0, [2]float64{0.8, 0.9})
 			r.Score = score
 
 			r.Res = Resource{
@@ -166,8 +166,6 @@ func init() {
 				PropertyValue: mean,
 			}
 
-			score, mean = upperRateBoundaries(&nm.PacketsRecv, fromLimit, to, opt, 20.0, [2]float64{0.8, 0.9})
-
 			if r.Score > 0 {
 				//get hungry processes
 				r.Related = make([]Resource, 0)
@@ -175,7 +173,7 @@ func init() {
 					if len(r.Related) >= 3 {
 						break
 					}
-					rate, ok := proc.NetIOCounters[nname].PacketsSent.Rate(opt.IORateLoadDuration)
+					rate, ok := proc.NetIOCounters[nname].PacketsRecv.Rate(opt.IORateLoadDuration)
 					if !ok {
 						logrus.Warnf("Couldn't get process sent pps for net on limits analysis")
 						continue

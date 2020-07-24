@@ -20,11 +20,13 @@ func init() {
 		sin, ok := ActiveStats.MemStats.SwapIn.Rate(opt.MemAvgDuration)
 		if !ok {
 			r.Message = notEnoughDataMessage(opt.MemAvgDuration)
+			r.Score = -1
 			return []DetectionResult{r}
 		}
 		sout, ok := ActiveStats.MemStats.SwapOut.Rate(opt.MemAvgDuration)
 		if !ok {
 			r.Message = notEnoughDataMessage(opt.MemAvgDuration)
+			r.Score = -1
 			return []DetectionResult{r}
 		}
 

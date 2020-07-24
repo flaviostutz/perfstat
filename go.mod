@@ -4,6 +4,7 @@ go 1.14
 
 require (
 	github.com/StackExchange/wmi v0.0.0-20190523213315-cbe66965904d // indirect
+	github.com/coryb/sorty v0.0.0-20150713032104-4c034679911c
 	github.com/flaviostutz/signalutils v1.10.0
 	github.com/fsnotify/fsnotify v1.4.9 // indirect
 	github.com/go-ole/go-ole v1.2.4 // indirect

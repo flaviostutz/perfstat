@@ -24,6 +24,7 @@ func init() {
 			errRate, ok := nic.ErrIn.Rate(opt.IORateLoadDuration)
 			if !ok {
 				r.Message = notEnoughDataMessage(opt.IORateLoadDuration)
+				r.Score = -1
 				return []DetectionResult{r}
 			}
 
@@ -69,6 +70,7 @@ func init() {
 			errRate, ok = nic.ErrOut.Rate(opt.IORateLoadDuration)
 			if !ok {
 				r.Message = notEnoughDataMessage(opt.IORateLoadDuration)
+				r.Score = -1
 				return []DetectionResult{r}
 			}
 

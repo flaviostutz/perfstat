@@ -22,6 +22,7 @@ func init() {
 		usedFD, ok := ActiveStats.DiskStats.FD.UsedFD.Avg(from, to)
 		if !ok {
 			r.Message = notEnoughDataMessage(opt.IORateLoadDuration)
+			r.Score = -1
 			return []DetectionResult{r}
 		}
 		maxFD := ActiveStats.DiskStats.FD.MaxFD

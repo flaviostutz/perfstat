@@ -5,6 +5,8 @@ github.com/chzyer/readline v0.0.0-20180603132655-2972be24d48e h1:fY5BOSpyZCqRo5O
 github.com/chzyer/readline v0.0.0-20180603132655-2972be24d48e/go.mod h1:nSuG5e5PlCu98SY8svDHJxuZscDgtXS6KTTbou5AhLI=
 github.com/chzyer/test v0.0.0-20180213035817-a1ea475d72b1/go.mod h1:Q3SI9o4m/ZMnBNeIyt5eFwwo7qiLfzFZmjNmxjkiQlU=
 github.com/codesuki/go-time-series v0.0.0-20161018024404-887e3cebe04b/go.mod h1:Rm6RJZPJg9b/vwne8fiAcfh0X5QFNszEhijK6d6qW9k=
+github.com/coryb/sorty v0.0.0-20150713032104-4c034679911c h1:ldMWo0efeWFRie0iZNywJqrDPa68i7iTSEm1q1rYKGk=
+github.com/coryb/sorty v0.0.0-20150713032104-4c034679911c/go.mod h1:dwkX4/9DCSikHvGkM+qPucCPJ/mj6wT54at3cVbfSPs=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=

@@ -23,6 +23,7 @@ func init() {
 			idle, ok := stats.TimeLoadPerc(&cpu.Idle, opt.CPULoadAvgDuration)
 			if !ok {
 				r.Message = notEnoughDataMessage(opt.CPULoadAvgDuration)
+				r.Score = -1
 				return []DetectionResult{r}
 			}
 

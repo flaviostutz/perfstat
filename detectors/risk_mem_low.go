@@ -25,11 +25,13 @@ func init() {
 		mused, ok := ActiveStats.MemStats.Used.Avg(time.Now().Add(-opt.MemAvgDuration), time.Now())
 		if !ok {
 			r.Message = notEnoughDataMessage(opt.MemLeakDuration)
+			r.Score = -1
 			return []DetectionResult{r}
 		}
 		sused, ok := ActiveStats.MemStats.SwapUsed.Avg(time.Now().Add(-opt.MemAvgDuration), time.Now())
 		if !ok {
 			r.Message = notEnoughDataMessage(opt.MemLeakDuration)
+			r.Score = -1
 			return []DetectionResult{r}
 		}
 

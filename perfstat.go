@@ -2,9 +2,11 @@ package perfstat
 
 import (
 	"fmt"
-	"sort"
+	"math"
+	"regexp"
 	"time"
 
+	"github.com/coryb/sorty"
 	"github.com/flaviostutz/perfstat/detectors"
 	"github.com/flaviostutz/perfstat/stats"
 	"github.com/flaviostutz/signalutils"
@@ -69,19 +71,71 @@ func (p *Perfstat) Watch(issueEvents chan IssueEvent) {
 	})
 }
 
-func (p *Perfstat) TopCriticity() []detectors.DetectionResult {
-	da := make([]detectors.DetectionResult, 0)
+//TopCriticity returns the most important items found in system
+//if typ or id is "", all results are returned
+//removeNear is used to hide occurrences that have similar contents in id, score and prop value
+func (p *Perfstat) TopCriticity(minScore float64, typ string, idRegex string, removeNear bool) []detectors.DetectionResult {
+
+	data := make([]map[string]interface{}, 0)
 	for _, v := range p.curResults {
-		da = append(da, v)
-	}
-	sort.Slice(da, func(i, j int) bool {
-		si := da[i].Score
-		sj := da[j].Score
-		if si == sj {
-			return da[i].Res.PropertyValue > da[j].Res.PropertyValue
+		d := map[string]interface{}{
+			"ref":               v,
+			"Typ":               v.Typ,
+			"ID":                v.ID,
+			"Score":             v.Score,
+			"Res.Name":          v.Res.Name,
+			"Res.Typ":           v.Res.Typ,
+			"Res.PropertyName":  v.Res.PropertyName,
+			"Res.PropertyValue": v.Res.PropertyValue,
 		}
-		return si > sj
+		data = append(data, d)
+	}
+
+	s := sorty.NewSorter().ByKeys([]string{
+		"-Score",
+		"-Res.PropertyValue",
+		"+Res.PropertyName",
 	})
+	s.Sort(data)
+
+	da := make([]detectors.DetectionResult, 0)
+	for _, v := range data {
+		o := v["ref"].(detectors.DetectionResult)
+		if typ != "" && o.Typ != typ {
+			continue
+		}
+		if idRegex != "" {
+			re := regexp.MustCompile(idRegex)
+			if !re.MatchString(o.ID) {
+				continue
+			}
+		}
+		if o.Score < minScore {
+			continue
+		}
+		da = append(da, o)
+	}
+
+	if removeNear {
+		rr := make([]detectors.DetectionResult, 0)
+		p := detectors.DetectionResult{}
+		for _, v := range da {
+			add := true
+			if p.Typ == v.Typ && p.ID == v.ID {
+				if near(p.Score, v.Score, 0.01) {
+					if near(p.Res.PropertyValue, v.Res.PropertyValue, 0.01) {
+						add = false
+					}
+				}
+			}
+			if add {
+				rr = append(rr, v)
+			}
+			p = v
+		}
+		return rr
+	}
+
 	return da
 }
 
@@ -91,7 +145,7 @@ func (p *Perfstat) DetectNow() ([]detectors.DetectionResult, error) {
 	if !detectors.Started {
 		return []detectors.DetectionResult{}, fmt.Errorf("Perfstat not started yet")
 	}
-	logrus.Debugf("Perfstat DetectNow()")
+	// logrus.Debugf("Perfstat DetectNow()")
 	for _, df := range detectors.DetectorFuncs {
 		r := df(&detectors.Opt)
 		// for _, iss := range r {
@@ -104,4 +158,14 @@ func (p *Perfstat) DetectNow() ([]detectors.DetectionResult, error) {
 
 func (p *Perfstat) Stop() {
 	detectors.Stop()
+}
+
+func round(x float64) float64 {
+	return math.Round(x*100) / 100
+}
+func near(x1 float64, x2 float64, distPerc float64) bool {
+	if x1 == 0 {
+		return true
+	}
+	return (math.Abs(x1-x2) / x1) < distPerc
 }

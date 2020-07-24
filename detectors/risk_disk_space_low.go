@@ -23,18 +23,19 @@ func init() {
 			free, ok := part.Free.Last()
 			if !ok {
 				r.Message = notEnoughDataMessage(10 * time.Second)
+				r.Score = -1
 				return []DetectionResult{r}
 			}
 
 			max := float64(total) + free.Value
 
 			if max == 0 {
-				r.Message = "partition size is zero"
-				r.Res = Resource{
-					Typ:  "disk",
-					Name: fmt.Sprintf("partition:%s", pname),
-				}
-				issues = append(issues, r)
+				// r.Message = "partition size is zero"
+				// r.Res = Resource{
+				// 	Typ:  "disk",
+				// 	Name: fmt.Sprintf("partition:%s", pname),
+				// }
+				// issues = append(issues, r)
 				continue
 			}
 
@@ -62,18 +63,19 @@ func init() {
 			free, ok = part.InodesFree.Last()
 			if !ok {
 				r.Message = notEnoughDataMessage(10 * time.Second)
+				r.Score = -1
 				return []DetectionResult{r}
 			}
 
 			max = float64(total) + free.Value
 
 			if max == 0 {
-				r.Message = "inodes max is zero"
-				r.Res = Resource{
-					Typ:  "disk",
-					Name: fmt.Sprintf("partition:%s", pname),
-				}
-				issues = append(issues, r)
+				// r.Message = "inodes max is zero"
+				// r.Res = Resource{
+				// 	Typ:  "disk",
+				// 	Name: fmt.Sprintf("partition:%s", pname),
+				// }
+				// issues = append(issues, r)
 				continue
 			}
 
@@ -89,6 +91,7 @@ func init() {
 
 			issues = append(issues, r)
 		}
+
 		return issues
 	})
 }
