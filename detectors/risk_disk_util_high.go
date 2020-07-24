@@ -34,7 +34,14 @@ func init() {
 				PropertyValue: utilPerc,
 			}
 
-			r.Score = criticityScore(utilPerc, opt.HighCPUWaitPercRange)
+			cc, err := ActiveStats.CPUStats.CPUCount()
+			if err != nil {
+				r.Message = fmt.Sprintf("Couldn't get CPU count. err=%s", err)
+				r.Score = -1
+				return []DetectionResult{r}
+			}
+			ranges := [2]float64{opt.HighCPUWaitPercRange[0] * float64(cc), opt.HighCPUWaitPercRange[1] * float64(cc)}
+			r.Score = criticityScore(utilPerc, ranges)
 
 			//get processes waiting for IOs
 			r.Related = make([]Resource, 0)
@@ -49,7 +56,7 @@ func init() {
 				}
 				res := Resource{
 					Typ:           "process",
-					Name:          fmt.Sprintf("pid:%d", proc.Pid),
+					Name:          fmt.Sprintf("%s(%s)[%d]", proc.Cmdline, proc.Name, proc.Pid),
 					PropertyName:  "cpu-iowait-perc",
 					PropertyValue: iw,
 				}

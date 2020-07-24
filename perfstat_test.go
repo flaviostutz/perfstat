@@ -45,7 +45,10 @@ func TestRollingDetections(t *testing.T) {
 		crit := p.TopCriticity(0.01, "", "", false)
 		for _, is := range crit {
 			// fmt.Printf(">>>> %s\n", is.String())
-			fmt.Printf("%.2f %s [%s %s=%.2f] (%s)\n", is.Score, is.ID, is.Res.Name, is.Res.PropertyName, is.Res.PropertyValue, is.Typ)
+			fmt.Printf("[ %.2f %s ] (%s %s=%.2f) (%s)\n", is.Score, is.ID, is.Res.Name, is.Res.PropertyName, is.Res.PropertyValue, is.Typ)
+			for _, r := range is.Related {
+				fmt.Printf("    > RELATED: %s [%s=%.2f]\n", r.Name, r.PropertyName, r.PropertyValue)
+			}
 		}
 		time.Sleep(5 * time.Second)
 	}

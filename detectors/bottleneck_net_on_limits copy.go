@@ -54,7 +54,7 @@ func init() {
 					}
 					res := Resource{
 						Typ:           "process",
-						Name:          fmt.Sprintf("pid:%d", proc.Pid),
+						Name:          fmt.Sprintf("%s(%s)[%d]", proc.Cmdline, proc.Name, proc.Pid),
 						PropertyName:  "net-sent-bps",
 						PropertyValue: rate,
 					}
@@ -97,7 +97,7 @@ func init() {
 					}
 					res := Resource{
 						Typ:           "process",
-						Name:          fmt.Sprintf("pid:%d", proc.Pid),
+						Name:          fmt.Sprintf("%s(%s)[%d]", proc.Cmdline, proc.Name, proc.Pid),
 						PropertyName:  "net-recv-bps",
 						PropertyValue: rate,
 					}
@@ -140,7 +140,7 @@ func init() {
 					}
 					res := Resource{
 						Typ:           "process",
-						Name:          fmt.Sprintf("pid:%d", proc.Pid),
+						Name:          fmt.Sprintf("%s(%s)[%d]", proc.Cmdline, proc.Name, proc.Pid),
 						PropertyName:  "net-sent-pps",
 						PropertyValue: rate,
 					}
@@ -183,7 +183,7 @@ func init() {
 					}
 					res := Resource{
 						Typ:           "process",
-						Name:          fmt.Sprintf("pid:%d", proc.Pid),
+						Name:          fmt.Sprintf("%s(%s)[%d]", proc.Cmdline, proc.Name, proc.Pid),
 						PropertyName:  "net-recv-pps",
 						PropertyValue: rate,
 					}

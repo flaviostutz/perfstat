@@ -86,3 +86,7 @@ func (c *CPUStats) cpuStep() error {
 
 	return nil
 }
+
+func (c *CPUStats) CPUCount() (int, error) {
+	return cpu.Counts(true)
+}

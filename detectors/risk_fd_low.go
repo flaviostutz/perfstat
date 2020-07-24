@@ -53,7 +53,7 @@ func init() {
 			}
 			res := Resource{
 				Typ:           "process",
-				Name:          fmt.Sprintf("pid:%d", proc.Pid),
+				Name:          fmt.Sprintf("%s(%s)[%d]", proc.Cmdline, proc.Name, proc.Pid),
 				PropertyName:  "fd-used-count",
 				PropertyValue: pused,
 			}

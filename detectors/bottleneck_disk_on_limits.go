@@ -24,13 +24,13 @@ func init() {
 
 			r := DetectionResult{
 				Typ:   "bottleneck",
-				ID:    "disk-limit-rops",
+				ID:    "disk-limit-wbps",
 				When:  time.Now(),
 				Score: score,
 				Res: Resource{
 					Typ:           "disk",
 					Name:          fmt.Sprintf("disk:%s", dname),
-					PropertyName:  "read-ops",
+					PropertyName:  "write-bps",
 					PropertyValue: mean,
 				},
 			}
@@ -52,7 +52,7 @@ func init() {
 					}
 					res := Resource{
 						Typ:           "process",
-						Name:          fmt.Sprintf("pid:%d", proc.Pid),
+						Name:          fmt.Sprintf("%s(%s)[%d]", proc.Cmdline, proc.Name, proc.Pid),
 						PropertyName:  "disk-write-bps",
 						PropertyValue: rate,
 					}
@@ -94,7 +94,7 @@ func init() {
 					}
 					res := Resource{
 						Typ:           "process",
-						Name:          fmt.Sprintf("pid:%d", proc.Pid),
+						Name:          fmt.Sprintf("%s(%s)[%d]", proc.Cmdline, proc.Name, proc.Pid),
 						PropertyName:  "disk-read-bps",
 						PropertyValue: rate,
 					}
@@ -120,8 +120,6 @@ func init() {
 			}
 
 			if r.Score > 0 {
-				logrus.Tracef("disk-limit-wops ops=%.2f criticityScore=%.2f", mean, score)
-
 				//get hungry processes
 				r.Related = make([]Resource, 0)
 				for _, proc := range ActiveStats.ProcessStats.TopIOOpRate(false) {
@@ -138,7 +136,7 @@ func init() {
 					}
 					res := Resource{
 						Typ:           "process",
-						Name:          fmt.Sprintf("pid:%d", proc.Pid),
+						Name:          fmt.Sprintf("%s(%s)[%d]", proc.Cmdline, proc.Name, proc.Pid),
 						PropertyName:  "disk-write-ops",
 						PropertyValue: rate,
 					}
@@ -180,7 +178,7 @@ func init() {
 					}
 					res := Resource{
 						Typ:           "process",
-						Name:          fmt.Sprintf("pid:%d", proc.Pid),
+						Name:          fmt.Sprintf("%s(%s)[%d]", proc.Cmdline, proc.Name, proc.Pid),
 						PropertyName:  "disk-read-ops",
 						PropertyValue: rate,
 					}

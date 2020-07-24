@@ -48,7 +48,7 @@ func init() {
 					pu, _ := stats.TimeLoadPerc(&proc.CPUTimes.User, opt.CPULoadAvgDuration)
 					res := Resource{
 						Typ:           "process",
-						Name:          fmt.Sprintf("pid:%d", proc.Pid),
+						Name:          fmt.Sprintf("%s(%s)[%d]", proc.Cmdline, proc.Name, proc.Pid),
 						PropertyName:  "cpu-all-load-perc",
 						PropertyValue: pu + ps,
 					}
