@@ -32,7 +32,7 @@ func NewOptions() Options {
 		HighMemPercRange:        [2]float64{0.70, 0.95},
 		HighSwapBpsRange:        [2]float64{10000000, 100000000},
 		LowDiskPercRange:        [2]float64{0.70, 0.90},
-		HighDiskUtilPercRange:   [2]float64{0.70, 0.90},
+		HighDiskUtilPercRange:   [2]float64{0.50, 0.90},
 		LowFileHandlesPercRange: [2]float64{0.70, 0.90},
 		FDUsedRange:             [2]float64{0.6, 0.9},
 		NICErrorsRange:          [2]float64{1, 10},

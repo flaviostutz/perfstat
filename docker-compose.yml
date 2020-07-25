@@ -4,5 +4,7 @@ services:
 
   perfstat:
     build: .
+    environment:
+      - RUN_TESTS=false
     privileged: true
 

@@ -82,9 +82,9 @@ curl localhost:8880/metrics
   * top disk eater processes OK
 * Disk bandwidth of read/writes seems to be in a ceil limit OK TESTED
   * top disk eater processes OK
-* Network interface bandwidth seems to be in a ceil limit OK
+* Network interface bandwidth seems to be in a ceil limit OK TESTED
   * top network bandwidth eater processes OK
-* Network interface pps seems to be in a ceil limit OK
+* Network interface pps seems to be in a ceil limit OK TESTED
   * top network pps eater processes OK
 
 ### Risks (may cause problems)
@@ -95,7 +95,7 @@ curl localhost:8880/metrics
   * mapped device with lowest space OK
 * Low Disk inodes OK TESTED
   * mapped device with lowest inodes OK
-* Low available open files descriptors OK
+* Low available open files descriptors OK TESTED
   * top process by open files OK
 * RAM memory growing linearly for process - there maybe a memory leak OK
   * process with growing memory OK
@@ -104,7 +104,7 @@ curl localhost:8880/metrics
 * High swap IO OK
   * Top process with swap OK
   * "Few RAM, may slow down system by using too much disk"
-* High %util in disk - disk is being hammered and may not handle well spikes when needed OK
+* High %util in disk - disk is being hammered and may not handle well spikes when needed OK TESTED
   * show processes with high disk util OK
 
 ### Insights (top 5)

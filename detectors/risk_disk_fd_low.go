@@ -54,7 +54,7 @@ func init() {
 			res := Resource{
 				Typ:           "process",
 				Name:          fmt.Sprintf("%s(%s)[%d]", proc.Cmdline, proc.Name, proc.Pid),
-				PropertyName:  "fd-used-count",
+				PropertyName:  "disk-fd-used-count",
 				PropertyValue: pused,
 			}
 			r.Related = append(r.Related, res)

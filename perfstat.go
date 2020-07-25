@@ -79,14 +79,14 @@ func (p *Perfstat) TopCriticity(minScore float64, typ string, idRegex string, re
 	data := make([]map[string]interface{}, 0)
 	for _, v := range p.curResults {
 		d := map[string]interface{}{
-			"ref":               v,
-			"Typ":               v.Typ,
-			"ID":                v.ID,
-			"Score":             v.Score,
-			"Res.Name":          v.Res.Name,
-			"Res.Typ":           v.Res.Typ,
+			"ref": v,
+			// "Typ":                  v.Typ,
+			// "ID":                   v.ID,
+			"Score":    round(v.Score),
+			"Res.Name": v.Res.Name,
+			// "Res.Typ":              v.Res.Typ,
 			"Res.PropertyName":  v.Res.PropertyName,
-			"Res.PropertyValue": v.Res.PropertyValue,
+			"Res.PropertyValue": round(v.Res.PropertyValue),
 		}
 		data = append(data, d)
 	}
@@ -94,6 +94,7 @@ func (p *Perfstat) TopCriticity(minScore float64, typ string, idRegex string, re
 	s := sorty.NewSorter().ByKeys([]string{
 		"-Score",
 		"-Res.PropertyValue",
+		"+Res.Name",
 		"+Res.PropertyName",
 	})
 	s.Sort(data)
@@ -137,6 +138,17 @@ func (p *Perfstat) TopCriticity(minScore float64, typ string, idRegex string, re
 	}
 
 	return da
+}
+
+func (p *Perfstat) Score(typ string, idRegex string) float64 {
+	dr := p.TopCriticity(0.0, typ, idRegex, false)
+	v := 0.0
+	for _, r := range dr {
+		if r.Score > v {
+			v = r.Score
+		}
+	}
+	return v
 }
 
 //DetectNow perform issues detection on the system once

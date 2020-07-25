@@ -33,7 +33,7 @@ func init() {
 		r.Res = Resource{
 			Typ:           "mem",
 			Name:          "swap",
-			PropertyName:  "swap-total-bps",
+			PropertyName:  "mem-swap-total-bps",
 			PropertyValue: sin + sout,
 		}
 
@@ -57,7 +57,7 @@ func init() {
 			re := Resource{
 				Typ:           "process",
 				Name:          fmt.Sprintf("%s(%s)[%d]", proc.Cmdline, proc.Name, proc.Pid),
-				PropertyName:  "swap-bytes",
+				PropertyName:  "mem-swap-bytes",
 				PropertyValue: swap,
 			}
 			r.Related = append(r.Related, re)

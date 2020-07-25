@@ -40,7 +40,7 @@ func init() {
 				r.Score = -1
 				return []DetectionResult{r}
 			}
-			ranges := [2]float64{opt.HighCPUWaitPercRange[0] * float64(cc), opt.HighCPUWaitPercRange[1] * float64(cc)}
+			ranges := [2]float64{opt.HighDiskUtilPercRange[0] * float64(cc), opt.HighDiskUtilPercRange[1] * float64(cc)}
 			r.Score = criticityScore(utilPerc, ranges)
 
 			//get processes waiting for IOs
