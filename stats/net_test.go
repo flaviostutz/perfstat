@@ -1,6 +1,7 @@
 package stats
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -10,7 +11,9 @@ import (
 
 func TestNetStatsBasic(t *testing.T) {
 	logrus.SetLevel(logrus.DebugLevel)
-	ps := NewNetStats(120*time.Second, 2*time.Second, 1)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	ps := NewNetStats(ctx, 120*time.Second, 2*time.Second, 1)
 	time.Sleep(4 * time.Second)
 	assert.GreaterOrEqual(t, len(ps.NICs), 1)
 
@@ -25,7 +28,9 @@ func TestNetStatsBasic(t *testing.T) {
 
 func TestNetTop(t *testing.T) {
 	logrus.SetLevel(logrus.DebugLevel)
-	ps := NewNetStats(120*time.Second, 2*time.Second, 1)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	ps := NewNetStats(ctx, 120*time.Second, 2*time.Second, 1)
 	time.Sleep(5 * time.Second)
 
 	td := ps.TopByteRate(true)

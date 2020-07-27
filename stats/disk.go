@@ -1,6 +1,7 @@
 package stats
 
 import (
+	"context"
 	"io/ioutil"
 	"sort"
 	"strconv"
@@ -16,7 +17,6 @@ type DiskStats struct {
 	Disks              map[string]*DiskMetrics
 	Partitions         map[string]*PartitionMetrics
 	FD                 *FDMetrics
-	worker             *signalutils.Worker
 	timeseriesSize     time.Duration
 	ioRateLoadDuration time.Duration
 }
@@ -48,7 +48,7 @@ type PartitionMetrics struct {
 	InodesFree  signalutils.Timeseries
 }
 
-func NewDiskStats(timeseriesSize time.Duration, ioRateLoadDuration time.Duration, sampleFreq float64) *DiskStats {
+func NewDiskStats(ctx context.Context, timeseriesSize time.Duration, ioRateLoadDuration time.Duration, sampleFreq float64) *DiskStats {
 	logrus.Tracef("Disk Stats: initializing...")
 
 	d := &DiskStats{
@@ -62,7 +62,7 @@ func NewDiskStats(timeseriesSize time.Duration, ioRateLoadDuration time.Duration
 		ioRateLoadDuration: ioRateLoadDuration,
 	}
 
-	d.worker = signalutils.StartWorker("disk", d.diskStep, sampleFreq/2, sampleFreq, true)
+	signalutils.StartWorker(ctx, "disk", d.diskStep, sampleFreq/2, sampleFreq, true)
 	logrus.Debugf("Disk Stats: running")
 
 	return d
@@ -245,8 +245,4 @@ func FDStats() (usedFD int64, maxFD int64, err error) {
 		return -1, -1, err
 	}
 	return (fr0 - fr1), fr2, nil
-}
-
-func (d *DiskStats) Stop() {
-	d.worker.Stop()
 }

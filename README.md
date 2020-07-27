@@ -128,6 +128,17 @@ go test -cpuprofile /tmp/cpu.prof -run ^TestProcessStatsBasic$
 //see results in browser
 go tool pprof -http 0.0.0.0:5050 /tmp/cpu.prof
 ```
+### CLI development
+
+* Because of tty characteristics, running CLI using ```docker-compose up``` won't work
+* Use command=sleep 9999 and mount source volume to container (as in docker-compose.yml) and than run
+
+```docker exec -it [containerid] sh```
+
+```sh
+cd /app
+go run .
+```
 
 ## Existing tools for performance analysis
 

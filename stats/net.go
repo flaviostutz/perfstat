@@ -1,6 +1,7 @@
 package stats
 
 import (
+	"context"
 	"sort"
 	"time"
 
@@ -11,7 +12,6 @@ import (
 
 type NetStats struct {
 	NICs               map[string]*NICMetrics
-	worker             *signalutils.Worker
 	timeseriesSize     time.Duration
 	ioRateLoadDuration time.Duration
 }
@@ -26,7 +26,7 @@ type NICMetrics struct {
 	ErrOut      signalutils.TimeseriesCounterRate
 }
 
-func NewNetStats(timeseriesSize time.Duration, ioRateLoadDuration time.Duration, sampleFreq float64) *NetStats {
+func NewNetStats(ctx context.Context, timeseriesSize time.Duration, ioRateLoadDuration time.Duration, sampleFreq float64) *NetStats {
 	logrus.Tracef("Net Stats: initializing...")
 
 	d := &NetStats{
@@ -35,7 +35,7 @@ func NewNetStats(timeseriesSize time.Duration, ioRateLoadDuration time.Duration,
 		ioRateLoadDuration: ioRateLoadDuration,
 	}
 
-	d.worker = signalutils.StartWorker("net", d.netStep, sampleFreq/2, sampleFreq, true)
+	signalutils.StartWorker(ctx, "net", d.netStep, sampleFreq/2, sampleFreq, true)
 	logrus.Debugf("Net Stats: running")
 
 	return d
@@ -140,8 +140,4 @@ func (d *NetStats) nicArray() []*NICMetrics {
 		dms = append(dms, v)
 	}
 	return dms
-}
-
-func (d *NetStats) Stop() {
-	d.worker.Stop()
 }

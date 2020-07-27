@@ -1,6 +1,7 @@
 package stats
 
 import (
+	"context"
 	"time"
 
 	"github.com/flaviostutz/signalutils"
@@ -9,9 +10,8 @@ import (
 )
 
 type CPUStats struct {
-	Total  *CPUTimes
-	CPU    []*CPUTimes
-	worker *signalutils.Worker
+	Total *CPUTimes
+	CPU   []*CPUTimes
 }
 
 type CPUTimes struct {
@@ -22,7 +22,7 @@ type CPUTimes struct {
 	Steal  signalutils.Timeseries
 }
 
-func NewCPUStats(timeseriesMaxSpan time.Duration, sampleFreq float64) *CPUStats {
+func NewCPUStats(ctx context.Context, timeseriesMaxSpan time.Duration, sampleFreq float64) *CPUStats {
 	logrus.Tracef("CPU Stats: initializing...")
 
 	nrcpu, err := cpu.Counts(true)
@@ -37,14 +37,10 @@ func NewCPUStats(timeseriesMaxSpan time.Duration, sampleFreq float64) *CPUStats 
 	}
 	ct.Total = newCPUTimes(timeseriesMaxSpan)
 
-	ct.worker = signalutils.StartWorker("cpu", ct.cpuStep, sampleFreq/2, sampleFreq, true)
+	signalutils.StartWorker(ctx, "cpu", ct.cpuStep, sampleFreq/2, sampleFreq, true)
 	logrus.Debugf("CPU Stats: running")
 
 	return ct
-}
-
-func (c *CPUStats) Stop() {
-	c.worker.Stop()
 }
 
 func newCPUTimes(tsDuration time.Duration) *CPUTimes {

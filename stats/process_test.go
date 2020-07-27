@@ -1,6 +1,7 @@
 package stats
 
 import (
+	"context"
 	"fmt"
 	"strings"
 	"testing"
@@ -12,7 +13,9 @@ import (
 
 func TestProcessStatsBasic(t *testing.T) {
 	logrus.SetLevel(logrus.DebugLevel)
-	ps := NewProcessStats(120*time.Second, 1*time.Second, 1*time.Second, 1*time.Second, 1.0)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	ps := NewProcessStats(ctx, 120*time.Second, 1*time.Second, 1*time.Second, 1*time.Second, 1.0)
 	time.Sleep(7 * time.Second)
 	assert.GreaterOrEqual(t, len(ps.Processes), 1)
 	for _, p := range ps.Processes {

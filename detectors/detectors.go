@@ -1,6 +1,7 @@
 package detectors
 
 import (
+	"context"
 	"fmt"
 	"math"
 	"time"
@@ -37,12 +38,12 @@ func NewOptions() Options {
 		FDUsedRange:             [2]float64{0.6, 0.9},
 		NICErrorsRange:          [2]float64{1, 10},
 		DefaultSampleFreq:       1.0,
-		DefaultTimeseriesSize:   30 * time.Minute,
+		DefaultTimeseriesSize:   11 * time.Minute,
 		CPULoadAvgDuration:      1 * time.Minute,
 		IORateLoadDuration:      1 * time.Minute,
 		IOLimitsSpan:            1 * time.Minute,
 		MemAvgDuration:          1 * time.Minute,
-		MemLeakDuration:         20 * time.Minute,
+		MemLeakDuration:         10 * time.Minute,
 	}
 }
 
@@ -131,27 +132,16 @@ func SetLogLevel(level logrus.Level) {
 	logrus.SetLevel(level)
 }
 
-func Start(opt Options) {
+func Start(ctx context.Context, opt Options) {
 	if !Started {
 		ActiveStats = &StatsType{}
-		ActiveStats.CPUStats = stats.NewCPUStats(opt.DefaultTimeseriesSize, 1)
-		ActiveStats.ProcessStats = stats.NewProcessStats(opt.DefaultTimeseriesSize, opt.IORateLoadDuration, opt.CPULoadAvgDuration, opt.MemAvgDuration, opt.DefaultSampleFreq)
-		ActiveStats.MemStats = stats.NewMemStats(opt.DefaultTimeseriesSize, opt.DefaultSampleFreq)
-		ActiveStats.DiskStats = stats.NewDiskStats(opt.DefaultTimeseriesSize, opt.IORateLoadDuration, opt.DefaultSampleFreq)
-		ActiveStats.NetStats = stats.NewNetStats(opt.DefaultTimeseriesSize, opt.IORateLoadDuration, opt.DefaultSampleFreq)
+		ActiveStats.CPUStats = stats.NewCPUStats(ctx, opt.DefaultTimeseriesSize, 1)
+		ActiveStats.ProcessStats = stats.NewProcessStats(ctx, opt.DefaultTimeseriesSize, opt.IORateLoadDuration, opt.CPULoadAvgDuration, opt.MemAvgDuration, opt.DefaultSampleFreq)
+		ActiveStats.MemStats = stats.NewMemStats(ctx, opt.DefaultTimeseriesSize, opt.DefaultSampleFreq)
+		ActiveStats.DiskStats = stats.NewDiskStats(ctx, opt.DefaultTimeseriesSize, opt.IORateLoadDuration, opt.DefaultSampleFreq)
+		ActiveStats.NetStats = stats.NewNetStats(ctx, opt.DefaultTimeseriesSize, opt.IORateLoadDuration, opt.DefaultSampleFreq)
 		Opt = opt
 		Started = true
-	}
-}
-
-func Stop() {
-	if Started {
-		ActiveStats.CPUStats.Stop()
-		ActiveStats.ProcessStats.Stop()
-		ActiveStats.MemStats.Stop()
-		ActiveStats.DiskStats.Stop()
-		ActiveStats.NetStats.Stop()
-		Started = false
 	}
 }
 

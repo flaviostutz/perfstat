@@ -1,6 +1,7 @@
 package perfstat
 
 import (
+	"context"
 	"fmt"
 	"math"
 	"regexp"
@@ -19,8 +20,7 @@ type Perfstat struct {
 	opt          detectors.Options
 	cpuStats     *stats.CPUStats
 	processStats *stats.ProcessStats
-	worker1      *signalutils.Worker
-	worker2      *signalutils.Worker
+	workerCancel context.CancelFunc
 	curResults   []detectors.DetectionResult
 	observer     observer.Observer
 }
@@ -32,17 +32,17 @@ type IssueEvent struct {
 }
 
 //Start initializes a new Perfstat utility
-func Start(opt detectors.Options) *Perfstat {
+func Start(ctx context.Context, opt detectors.Options) *Perfstat {
 	p := &Perfstat{
 		opt: opt,
 	}
 
 	logrus.Debugf("Starting detectors")
-	detectors.Start(opt)
+	detectors.Start(ctx, opt)
 	time.Sleep(1 * time.Second)
 
 	logrus.Debugf("Starting issues tracker")
-	p.worker1 = signalutils.StartWorker("perfstat-detect", func() error {
+	signalutils.StartWorker(ctx, "perfstat-detect", func() error {
 		result, err := p.DetectNow()
 		if err != nil {
 			return err
@@ -166,10 +166,6 @@ func (p *Perfstat) DetectNow() ([]detectors.DetectionResult, error) {
 		results = append(results, r...)
 	}
 	return results, nil
-}
-
-func (p *Perfstat) Stop() {
-	detectors.Stop()
 }
 
 func round(x float64) float64 {

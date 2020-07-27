@@ -1,6 +1,7 @@
 package stats
 
 import (
+	"context"
 	"time"
 
 	"github.com/flaviostutz/signalutils"
@@ -18,10 +19,9 @@ type MemStats struct {
 	SwapTotal uint64
 	SwapUsed  signalutils.Timeseries
 	SwapFree  signalutils.Timeseries
-	worker    *signalutils.Worker
 }
 
-func NewMemStats(timeseriesMaxSpan time.Duration, sampleFreq float64) *MemStats {
+func NewMemStats(ctx context.Context, timeseriesMaxSpan time.Duration, sampleFreq float64) *MemStats {
 	logrus.Tracef("Mem Stats: initializing...")
 
 	mt := &MemStats{}
@@ -34,14 +34,10 @@ func NewMemStats(timeseriesMaxSpan time.Duration, sampleFreq float64) *MemStats 
 	mt.SwapTotal = 0.0
 	mt.SwapUsed = signalutils.Timeseries{}
 
-	mt.worker = signalutils.StartWorker("mem", mt.memStep, sampleFreq/2, sampleFreq, true)
+	signalutils.StartWorker(ctx, "mem", mt.memStep, sampleFreq/2, sampleFreq, true)
 	logrus.Debugf("Mem Stats: running")
 
 	return mt
-}
-
-func (m *MemStats) Stop() {
-	m.worker.Stop()
 }
 
 func (m *MemStats) memStep() error {

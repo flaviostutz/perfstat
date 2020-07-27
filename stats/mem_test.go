@@ -1,6 +1,7 @@
 package stats
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -9,7 +10,9 @@ import (
 
 func TestMemBasic(t *testing.T) {
 	// logrus.SetLevel(logrus.DebugLevel)
-	s := NewMemStats(60*time.Second, 2)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	s := NewMemStats(ctx, 60*time.Second, 2)
 	time.Sleep(5 * time.Second)
 
 	tot := s.Total
@@ -26,6 +29,4 @@ func TestMemBasic(t *testing.T) {
 	v, ok = s.Available.Last()
 	assert.True(t, ok)
 	assert.GreaterOrEqualf(t, v.Value, 1000.0, "")
-
-	s.Stop()
 }

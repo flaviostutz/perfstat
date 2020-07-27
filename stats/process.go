@@ -1,6 +1,7 @@
 package stats
 
 import (
+	"context"
 	"sort"
 	"time"
 
@@ -16,7 +17,6 @@ type ProcessStats struct {
 	ioLoadRateTimeSpan time.Duration
 	memAvgTimeSpan     time.Duration
 	cpuLoadTimeSpan    time.Duration
-	worker             *signalutils.Worker
 	lastCleanupTime    time.Time
 }
 
@@ -54,7 +54,7 @@ type ProcessMetrics struct {
 	OpenFiles          signalutils.Timeseries
 }
 
-func NewProcessStats(timeseriesMaxSpan time.Duration, ioLoadRateTimeSpan time.Duration, cpuLoadTimeSpan time.Duration, memAvgTimeSpan time.Duration, sampleFreq float64) *ProcessStats {
+func NewProcessStats(ctx context.Context, timeseriesMaxSpan time.Duration, ioLoadRateTimeSpan time.Duration, cpuLoadTimeSpan time.Duration, memAvgTimeSpan time.Duration, sampleFreq float64) *ProcessStats {
 	logrus.Tracef("Process Stats: initializing...")
 	ps := &ProcessStats{
 		Processes:          make(map[int32]*ProcessMetrics),
@@ -63,7 +63,7 @@ func NewProcessStats(timeseriesMaxSpan time.Duration, ioLoadRateTimeSpan time.Du
 		timeseriesMaxSpan:  timeseriesMaxSpan,
 		memAvgTimeSpan:     memAvgTimeSpan,
 	}
-	signalutils.StartWorker("process", ps.processStep, sampleFreq/2, sampleFreq, true)
+	signalutils.StartWorker(ctx, "process", ps.processStep, sampleFreq/2, sampleFreq, true)
 	logrus.Debugf("Process Stats: running")
 	return ps
 }
@@ -250,10 +250,6 @@ func addNetIOCounters(n *net.IOCountersStat, nioc *NetIOCounters) {
 	nioc.ErrOut.Set(float64(n.Errout + n.Dropout))
 	nioc.PacketsRecv.Set(float64(n.PacketsRecv))
 	nioc.PacketsSent.Set(float64(n.PacketsSent))
-}
-
-func (ps *ProcessStats) Stop() {
-	ps.worker.Stop()
 }
 
 func (p *ProcessStats) TopCPULoad() []*ProcessMetrics {

@@ -1,6 +1,7 @@
 package stats
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -10,19 +11,22 @@ import (
 
 func TestCPUWatcherTotal(t *testing.T) {
 	// logrus.SetLevel(logrus.DebugLevel)
-	s := NewCPUStats(60*time.Second, 2)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	s := NewCPUStats(ctx, 60*time.Second, 2)
 	time.Sleep(5 * time.Second)
 	tc, ok := TimeLoadPerc(&s.Total.Idle, 3*time.Second)
 	// fmt.Printf(">>>>> %f\n", tc)
 	assert.True(t, ok)
 	assert.GreaterOrEqualf(t, tc, 0.3, "")
-	s.Stop()
 	// assert.LessOrEqualf(t, tc, 1.0, "")
 }
 
 func TestCPUWatcherPerCPU(t *testing.T) {
 	// logrus.SetLevel(logrus.DebugLevel)
-	s := NewCPUStats(60*time.Second, 2)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	s := NewCPUStats(ctx, 60*time.Second, 2)
 	time.Sleep(5 * time.Second)
 	// tc1, ok := CPUAvgPerc(&cpuStats.CPU[0].Idle, 3*time.Second)
 	tc2, ok := TimeLoadPerc(&s.CPU[0].User, 3*time.Second)

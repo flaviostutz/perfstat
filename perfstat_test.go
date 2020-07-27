@@ -1,6 +1,7 @@
 package perfstat
 
 import (
+	"context"
 	"fmt"
 	"testing"
 	"time"
@@ -18,7 +19,9 @@ func TestDetectNow(t *testing.T) {
 	opt.HighCPUPercRange = [2]float64{0.0, 0.9}
 	opt.CPULoadAvgDuration = 1 * time.Second
 	opt.IORateLoadDuration = 1 * time.Second
-	p := Start(opt)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	p := Start(ctx, opt)
 	p.SetLogLevel(logrus.DebugLevel)
 	time.Sleep(6 * time.Second)
 
@@ -36,7 +39,9 @@ func TestRollingDetections(t *testing.T) {
 	opt.MemAvgDuration = 30 * time.Second
 	opt.MemLeakDuration = 30 * time.Second
 
-	p := Start(opt)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	p := Start(ctx, opt)
 	p.SetLogLevel(logrus.DebugLevel)
 	time.Sleep(6 * time.Second)
 

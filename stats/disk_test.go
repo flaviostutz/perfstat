@@ -1,6 +1,7 @@
 package stats
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -10,7 +11,9 @@ import (
 
 func TestDiskStatsBasic(t *testing.T) {
 	logrus.SetLevel(logrus.DebugLevel)
-	ps := NewDiskStats(120*time.Second, 2*time.Second, 1)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	ps := NewDiskStats(ctx, 120*time.Second, 2*time.Second, 1)
 	time.Sleep(4 * time.Second)
 	assert.GreaterOrEqual(t, len(ps.Disks), 1)
 
@@ -31,7 +34,9 @@ func TestDiskStatsBasic(t *testing.T) {
 
 func TestDiskTop(t *testing.T) {
 	logrus.SetLevel(logrus.DebugLevel)
-	ps := NewDiskStats(120*time.Second, 2*time.Second, 1)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	ps := NewDiskStats(ctx, 120*time.Second, 2*time.Second, 1)
 	time.Sleep(5 * time.Second)
 
 	td := ps.TopByteRate(true)
