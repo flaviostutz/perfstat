@@ -8,6 +8,7 @@ import (
 
 	"github.com/flaviostutz/perfstat"
 	"github.com/flaviostutz/perfstat/detectors"
+	"github.com/flaviostutz/signalutils"
 	"github.com/mum4k/termdash"
 	"github.com/mum4k/termdash/container"
 	"github.com/mum4k/termdash/keyboard"
@@ -22,7 +23,8 @@ type Option struct {
 }
 
 type screen interface {
-	build(ctx context.Context, opt Option, ps *perfstat.Perfstat) ([]container.Option, error)
+	build(opt Option, ps *perfstat.Perfstat) (container.Option, error)
+	update(opt Option, ps *perfstat.Perfstat) error
 	onEvent(evt *terminalapi.Keyboard)
 }
 
@@ -32,13 +34,12 @@ var (
 	ps                 *perfstat.Perfstat
 	curScreenCtxCancel context.CancelFunc
 	curScreen          screen
-	mainCtx            context.Context
 )
 
 func main() {
 
 	flag.Float64Var(&opt.freq, "freq", 1.0, "Analysis frequency. Changes data capture and display refresh frequency. Higher consumes more CPU. Defaults to 1 Hz")
-	flag.Float64Var(&opt.sensibility, "sensibility", 1.0, "Lower values (ex.: 0.2) means larger timespan in analysis, leading to more accurate results but slower responses. Higher values (ex.: 5) means short time analysis but may lead to false positives. Defaults to 1.0")
+	flag.Float64Var(&opt.sensibility, "sensibility", 5.0, "Lower values (ex.: 0.2) means larger timespan in analysis, leading to more accurate results but slower responses. Higher values (ex.: 5) means short time analysis but may lead to false positives. Defaults to 1.0")
 	flag.Parse()
 
 	if opt.freq > 20 || opt.freq < 0.05 {
@@ -60,7 +61,6 @@ func main() {
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	mainCtx = ctx
 
 	ps = perfstat.Start(ctx, opt2)
 	ps.SetLogLevel(logrus.DebugLevel)
@@ -68,14 +68,20 @@ func main() {
 
 	logrus.Debugf("Initializing UI...")
 
+	fmt.Printf(">>>>MODE")
 	t, err := termbox.New(termbox.ColorMode(terminalapi.ColorMode256))
 	if err != nil {
+		fmt.Printf(">>>>MODEPPPP")
 		panic(err)
 	}
+	fmt.Printf(">>>>MODEOKOKOKOK")
 	defer t.Close()
+	fmt.Printf(">>>>MODE2222")
 
+	fmt.Printf(">>>>CCCC")
 	rootc, err = container.New(t, container.ID("root"))
 	if err != nil {
+		fmt.Printf(">>>>P!!")
 		panic(err)
 	}
 
@@ -88,16 +94,34 @@ func main() {
 		}
 	}
 
-	showScreen(home{})
-
-	err = termdash.Run(ctx,
-		t,
-		rootc,
-		termdash.KeyboardSubscriber(evtHandler),
-		termdash.RedrawInterval(time.Duration(1.0/opt.freq)*time.Second))
+	fmt.Printf(">>>>0000")
+	controller, err := termdash.NewController(t, rootc, termdash.KeyboardSubscriber(evtHandler))
 	if err != nil {
+		fmt.Printf(">>>>PPPP")
 		panic(err)
 	}
+
+	showScreen(&home{})
+
+	signalutils.StartWorker(ctx, "perstat-render", func() error {
+		fmt.Printf(">>>>1111")
+		err := curScreen.update(opt, ps)
+		if err != nil {
+			return err
+		}
+		fmt.Printf(">>>>2222")
+		err = controller.Redraw()
+		return err
+	}, opt.freq/2.0, opt.freq, false)
+
+	// err = termdash.Run(ctx,
+	// 	t,
+	// 	rootc,
+	// 	termdash.KeyboardSubscriber(evtHandler),
+	// 	termdash.RedrawInterval(time.Duration(1.0/opt.freq)*time.Second))
+	// if err != nil {
+	// 	panic(err)
+	// }
 
 	// for {
 	// 	fmt.Printf("\n\n\n")
@@ -114,21 +138,16 @@ func main() {
 	// 	}
 	// 	time.Sleep(5 * time.Second)
 	// }
+
 }
 
 func showScreen(s screen) {
-	//free previous screen resources
-	if curScreenCtxCancel != nil {
-		curScreenCtxCancel()
-	}
-
-	ctxc, cc := context.WithCancel(mainCtx)
-	r, err := s.build(ctxc, opt, ps)
+	fmt.Printf(">>>>BBBB")
+	r, err := s.build(opt, ps)
 	if err != nil {
 		panic(fmt.Sprintf("Error preparing screen %s. err=%s", s, err))
 	}
-	rootc.Update("root", r...)
+	rootc.Update("root", r)
 
 	curScreen = s
-	curScreenCtxCancel = cc
 }
