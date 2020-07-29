@@ -1,4 +1,4 @@
-package main
+babasibpackage main
 
 import (
 	"fmt"
@@ -263,7 +263,15 @@ func (h *home) build(opt Option, ps *perfstat.Perfstat) (container.Option, error
 }
 
 func (h *home) update(opt Option, ps *perfstat.Perfstat) error {
-	h.dangerText.Write(fmt.Sprintf("Danger:%d", 45))
+
+	//DANGER LEVEL
+	ds := ps.TopCriticity(0, "", "", false)
+	danger := 0.0
+	for _, d := range ds {
+		danger = danger + d.Score
+	}
+	h.dangerText.Write(fmt.Sprintf("Danger: %d", int(math.Round(danger*100))), text.WriteReplace())
+
 	h.sparklineDanger.Add([]int{21, 23, 43, 47, 42, 20, 21, 23, 43, 47, 42, 20, 21, 23, 43, 47, 42, 20, 7})
 
 	t := table.NewWriter()

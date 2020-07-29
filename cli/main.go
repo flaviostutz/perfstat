@@ -8,7 +8,6 @@ import (
 
 	"github.com/flaviostutz/perfstat"
 	"github.com/flaviostutz/perfstat/detectors"
-	"github.com/flaviostutz/signalutils"
 	"github.com/mum4k/termdash"
 	"github.com/mum4k/termdash/container"
 	"github.com/mum4k/termdash/keyboard"
@@ -34,6 +33,7 @@ var (
 	ps                 *perfstat.Perfstat
 	curScreenCtxCancel context.CancelFunc
 	curScreen          screen
+	paused             bool
 )
 
 func main() {
@@ -68,20 +68,13 @@ func main() {
 
 	logrus.Debugf("Initializing UI...")
 
-	fmt.Printf(">>>>MODE")
 	t, err := termbox.New(termbox.ColorMode(terminalapi.ColorMode256))
 	if err != nil {
-		fmt.Printf(">>>>MODEPPPP")
 		panic(err)
 	}
-	fmt.Printf(">>>>MODEOKOKOKOK")
-	defer t.Close()
-	fmt.Printf(">>>>MODE2222")
 
-	fmt.Printf(">>>>CCCC")
 	rootc, err = container.New(t, container.ID("root"))
 	if err != nil {
-		fmt.Printf(">>>>P!!")
 		panic(err)
 	}
 
@@ -89,30 +82,55 @@ func main() {
 		if curScreen != nil {
 			curScreen.onEvent(k)
 		}
-		if k.Key == keyboard.KeyEsc || k.Key == keyboard.KeyCtrlC {
+		//exit
+		if k.Key == keyboard.KeyEsc || k.Key == keyboard.KeyCtrlC || k.Key == 113 {
 			cancel()
+			//pause/unpause
+		} else if k.Key == 80 || k.Key == 112 {
+			paused = !paused
 		}
 	}
 
-	fmt.Printf(">>>>0000")
 	controller, err := termdash.NewController(t, rootc, termdash.KeyboardSubscriber(evtHandler))
 	if err != nil {
-		fmt.Printf(">>>>PPPP")
 		panic(err)
 	}
 
 	showScreen(&home{})
 
-	signalutils.StartWorker(ctx, "perstat-render", func() error {
-		fmt.Printf(">>>>1111")
-		err := curScreen.update(opt, ps)
-		if err != nil {
-			return err
+	paused = false
+
+	ticker := time.NewTicker(time.Duration(opt.freq) * time.Second).C
+	for {
+		select {
+
+		case <-ctx.Done():
+			//this is used because when using controller some "double closing" arises
+			//should be removed after fixing termdash (https://github.com/mum4k/termdash/issues/241)
+			defer func() {
+				recover()
+			}()
+			t.Close()
+
+		case <-ticker:
+			if !paused {
+				err := curScreen.update(opt, ps)
+				if err != nil {
+					return
+				}
+				err = controller.Redraw()
+			}
 		}
-		fmt.Printf(">>>>2222")
-		err = controller.Redraw()
-		return err
-	}, opt.freq/2.0, opt.freq, false)
+	}
+
+	// signalutils.StartWorker(ctx, "perstat-render", func() error {
+	// 	err := curScreen.update(opt, ps)
+	// 	if err != nil {
+	// 		return err
+	// 	}
+	// 	err = controller.Redraw()
+	// 	return err
+	// }, opt.freq/2.0, opt.freq, false)
 
 	// err = termdash.Run(ctx,
 	// 	t,
@@ -142,7 +160,6 @@ func main() {
 }
 
 func showScreen(s screen) {
-	fmt.Printf(">>>>BBBB")
 	r, err := s.build(opt, ps)
 	if err != nil {
 		panic(fmt.Sprintf("Error preparing screen %s. err=%s", s, err))
