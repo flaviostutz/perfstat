@@ -43,9 +43,13 @@ type home struct {
 	relatedText  *text.Text
 	dangerSeries *signalutils.Timeseries
 	pausedShow   bool
+
+	rc container.Option
 }
 
-func (h *home) build(opt Option, ps *perfstat.Perfstat) (container.Option, error) {
+func newHome(opt Option, ps *perfstat.Perfstat) (*home, error) {
+
+	h := &home{}
 
 	//prepare widgets
 	titleText, err := text.New()
@@ -267,7 +271,9 @@ func (h *home) build(opt Option, ps *perfstat.Perfstat) (container.Option, error
 		container.SplitFixed(1),
 	)
 
-	return c, nil
+	h.rc = c
+
+	return h, nil
 }
 
 func (h *home) update(opt Option, ps *perfstat.Perfstat, paused bool) error {
@@ -424,4 +430,8 @@ func subsystemBox(blabel string, bvalue int, bKey keyboard.Key, bKeyText string,
 	c2.Write(status, text.WriteReplace())
 
 	return c1, c2, nil
+}
+
+func (h *home) rootContainer() container.Option {
+	return h.rc
 }

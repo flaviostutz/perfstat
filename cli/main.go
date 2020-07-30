@@ -4,6 +4,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/flaviostutz/perfstat"
@@ -17,12 +18,15 @@ import (
 )
 
 type Option struct {
-	freq        float64
-	sensibility float64
+	freq         float64
+	sensibility  float64
+	promBindHost string
+	promBindPort uint
+	promPath     string
 }
 
 type screen interface {
-	build(opt Option, ps *perfstat.Perfstat) (container.Option, error)
+	rootContainer() container.Option
 	update(opt Option, ps *perfstat.Perfstat, paused bool) error
 	onEvent(evt *terminalapi.Keyboard)
 }
@@ -36,13 +40,35 @@ var (
 	curScreen          screen
 	paused             bool
 	t                  *termbox.Terminal
+	screens            map[string]screen
 )
 
 func main() {
+	screens = make(map[string]screen)
 
 	flag.Float64Var(&opt.freq, "freq", 1.0, "Analysis frequency. Changes data capture and display refresh frequency. Higher consumes more CPU. Defaults to 1 Hz")
 	flag.Float64Var(&opt.sensibility, "sensibility", 6.0, "Lower values (ex.: 0.2) means larger timespan in analysis, leading to more accurate results but slower responses. Higher values (ex.: 5) means short time analysis but may lead to false positives. Defaults to 1.0 which means detecting a continuous 100% CPU in 30s")
-	flag.Parse()
+
+	promf := flag.NewFlagSet("prometheus", flag.ExitOnError)
+	promf.Float64Var(&opt.freq, "freq", 1.0, "Analysis frequency. Changes data capture and display refresh frequency. Higher consumes more CPU. Defaults to 1 Hz")
+	promf.Float64Var(&opt.sensibility, "sensibility", 6.0, "Lower values (ex.: 0.2) means larger timespan in analysis, leading to more accurate results but slower responses. Higher values (ex.: 5) means short time analysis but may lead to false positives. Defaults to 1.0 which means detecting a continuous 100% CPU in 30s")
+	promf.UintVar(&opt.promBindPort, "port", 8880, "Prometheus exporter port. defaults to 8880")
+	promf.StringVar(&opt.promBindHost, "host", "0.0.0.0", "Prometheus exporter bind host. defaults to 0.0.0.0")
+	promf.StringVar(&opt.promPath, "path", "/metrics", "Prometheus exporter port. defaults to /metric")
+
+	loglevel := logrus.DebugLevel
+	logrus.SetLevel(loglevel)
+
+	prom := false
+	if len(os.Args) > 1 && os.Args[1] == "prometheus" {
+		err := promf.Parse(os.Args[2:])
+		if err != nil {
+			panic(err)
+		}
+		prom = true
+	} else {
+		flag.Parse()
+	}
 
 	if opt.freq > 20 || opt.freq < 0.05 {
 		panic("--freq must be between 0.05 and 20")
@@ -65,9 +91,18 @@ func main() {
 	defer cancel()
 
 	ps = perfstat.Start(ctx, opt2)
-	ps.SetLogLevel(logrus.DebugLevel)
+	ps.SetLogLevel(loglevel)
 	// time.Sleep(6 * time.Second)
 
+	if !prom {
+		startUI(ctx, cancel)
+	} else {
+		logrus.Debugf("Starting Prometheus Exporter")
+		startPrometheus(ctx, opt, ps)
+	}
+}
+
+func startUI(ctx context.Context, cancel context.CancelFunc) {
 	logrus.Debugf("Initializing UI...")
 
 	var err error
@@ -92,21 +127,17 @@ func main() {
 		} else if k.Key == 80 || k.Key == 112 {
 			paused = !paused
 		} else if k.Key == keyboard.KeyEsc || k.Key == 68 || k.Key == 72 {
-			showScreen(&home{})
+			showScreen("home")
 		} else if k.Key == 49 {
-			d := newDetail("cpu")
-			showScreen(&d)
+			showScreen("cpu")
 		} else if k.Key == 50 {
-			d := newDetail("mem")
-			showScreen(&d)
+			showScreen("mem")
 		} else if k.Key == 51 {
-			d := newDetail("disk")
-			showScreen(&d)
+			showScreen("disk")
 		} else if k.Key == 52 {
-			d := newDetail("net")
-			showScreen(&d)
+			showScreen("net")
 		}
-		updateScreen()
+		updateScreens()
 	}
 
 	controller, err = termdash.NewController(t, rootc, termdash.KeyboardSubscriber(evtHandler))
@@ -114,7 +145,38 @@ func main() {
 		panic(err)
 	}
 
-	showScreen(&home{})
+	//prepare screens
+	h, err := newHome(opt, ps)
+	if err != nil {
+		panic(fmt.Sprintf("Error preparing screen. err=%s", err))
+	}
+	screens["home"] = h
+
+	d, err := newDetails("cpu", opt, ps)
+	if err != nil {
+		panic(fmt.Sprintf("Error preparing screen. err=%s", err))
+	}
+	screens["cpu"] = d
+
+	d, err = newDetails("mem", opt, ps)
+	if err != nil {
+		panic(fmt.Sprintf("Error preparing screen. err=%s", err))
+	}
+	screens["mem"] = d
+
+	d, err = newDetails("disk", opt, ps)
+	if err != nil {
+		panic(fmt.Sprintf("Error preparing screen. err=%s", err))
+	}
+	screens["disk"] = d
+
+	d, err = newDetails("net", opt, ps)
+	if err != nil {
+		panic(fmt.Sprintf("Error preparing screen. err=%s", err))
+	}
+	screens["net"] = d
+
+	showScreen("home")
 
 	paused = false
 
@@ -131,28 +193,31 @@ func main() {
 			t.Close()
 
 		case <-ticker:
-			updateScreen()
+			err := updateScreens()
+			if err != nil {
+				panic(fmt.Sprintf("Error updating screens. err=%s", err))
+			}
 		}
 	}
 }
 
-func showScreen(s screen) {
-	r, err := s.build(opt, ps)
-	if err != nil {
-		panic(fmt.Sprintf("Error preparing screen %s. err=%s", s, err))
+func showScreen(name string) {
+	s, ok := screens[name]
+	if !ok {
+		panic(fmt.Sprintf("Screen not found. name=%s", name))
 	}
-	rootc.Update("root", r)
-
+	rootc.Update("root", s.rootContainer())
 	curScreen = s
-	// t.Clear()
 
-	updateScreen()
+	updateScreens()
 }
 
-func updateScreen() {
-	err := curScreen.update(opt, ps, paused)
-	if err != nil {
-		return
+func updateScreens() error {
+	for _, v := range screens {
+		err := v.update(opt, ps, paused)
+		if err != nil {
+			return err
+		}
 	}
-	err = controller.Redraw()
+	return controller.Redraw()
 }

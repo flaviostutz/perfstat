@@ -24,8 +24,8 @@ type detail struct {
 	sparklineDanger *sparkline.SparkLine
 	dangerSeries    *signalutils.Timeseries
 
-	sysButton *button.Button
-	sysText   *text.Text
+	groupButton *button.Button
+	sysText     *text.Text
 
 	sparkline1   *sparkline.SparkLine
 	sparkSeries1 *signalutils.Timeseries
@@ -41,14 +41,13 @@ type detail struct {
 
 	pausedShow bool
 
-	sys string
+	group string
+	rc    container.Option
 }
 
-func newDetail(sys string) detail {
-	return detail{sys: sys}
-}
+func newDetails(group string, opt Option, ps *perfstat.Perfstat) (*detail, error) {
 
-func (h *detail) build(opt Option, ps *perfstat.Perfstat) (container.Option, error) {
+	h := &detail{group: group}
 
 	//STATUS LINE
 	titleText, err := text.New()
@@ -74,7 +73,7 @@ func (h *detail) build(opt Option, ps *perfstat.Perfstat) (container.Option, err
 	h.dangerSeries = &ts
 
 	//HEADER
-	h.sysButton, err = createButton(h.sys, cell.ColorYellow)
+	h.groupButton, err = createButton(h.group, cell.ColorYellow)
 	if err != nil {
 		return nil, err
 	}
@@ -148,7 +147,7 @@ func (h *detail) build(opt Option, ps *perfstat.Perfstat) (container.Option, err
 						container.Left(
 							container.SplitVertical(
 								container.Left(
-									container.PlaceWidget(h.sysButton),
+									container.PlaceWidget(h.groupButton),
 								),
 								container.Right(
 									container.PlaceWidget(h.sparkline3),
@@ -208,7 +207,9 @@ func (h *detail) build(opt Option, ps *perfstat.Perfstat) (container.Option, err
 		container.SplitFixed(1),
 	)
 
-	return c, nil
+	h.rc = c
+
+	return h, nil
 }
 
 func (h *detail) update(opt Option, ps *perfstat.Perfstat, paused bool) error {
@@ -238,7 +239,7 @@ func (h *detail) update(opt Option, ps *perfstat.Perfstat, paused bool) error {
 	*h.sparklineDanger = *sparklineDanger2
 
 	//HEADER
-	scc := ps.Score("", fmt.Sprintf("%s.*", h.sys))
+	scc := ps.Score("", fmt.Sprintf("%s.*", h.group))
 
 	color := cell.ColorRed
 	bvalue := perc(scc)
@@ -248,7 +249,7 @@ func (h *detail) update(opt Option, ps *perfstat.Perfstat, paused bool) error {
 	if bvalue < 5 {
 		color = cell.ColorGreen
 	}
-	sysButton2, err := button.New(fmt.Sprintf("[%d] %s", bvalue, strings.ToUpper(h.sys)),
+	groupButton2, err := button.New(fmt.Sprintf("[%d] %s", bvalue, strings.ToUpper(h.group)),
 		func() error { return nil },
 		button.Width(15),
 		button.Height(5),
@@ -257,14 +258,14 @@ func (h *detail) update(opt Option, ps *perfstat.Perfstat, paused bool) error {
 	if err != nil {
 		return err
 	}
-	*h.sysButton = *sysButton2
+	*h.groupButton = *groupButton2
 
-	if h.sys == "cpu" {
+	if h.group == "cpu" {
 		updateSparkSeriesTimeLoad(&detectors.ActiveStats.CPUStats.Total.User, h.sparkSeries1, "User", h.sparkline1, false)
 		updateSparkSeriesTimeLoad(&detectors.ActiveStats.CPUStats.Total.IOWait, h.sparkSeries2, "IOWait", h.sparkline2, false)
 		updateSparkSeriesTimeLoad(&detectors.ActiveStats.CPUStats.Total.Idle, h.sparkSeries3, "Total", h.sparkline3, true)
 
-	} else if h.sys == "mem" {
+	} else if h.group == "mem" {
 		used, ok := detectors.ActiveStats.MemStats.Used.Last()
 		if ok {
 			swapUsed, ok := detectors.ActiveStats.MemStats.SwapUsed.Last()
@@ -275,7 +276,7 @@ func (h *detail) update(opt Option, ps *perfstat.Perfstat, paused bool) error {
 			}
 		}
 
-	} else if h.sys == "disk" {
+	} else if h.group == "disk" {
 		worstTotal := 0.0
 		worstUsed := 0.0
 		worstPerc := 0.0
@@ -321,7 +322,7 @@ func (h *detail) update(opt Option, ps *perfstat.Perfstat, paused bool) error {
 		updateSparkSeriesAbsoluteMax(rwc, "ops", h.sparkSeries1, "R/W", h.sparkline1, -1)
 		updateSparkSeriesAbsoluteMax(rwb, "bps", h.sparkSeries2, "R/W", h.sparkline2, -1)
 
-	} else if h.sys == "net" {
+	} else if h.group == "net" {
 		errorsTotal := 0.0
 		for _, nic := range detectors.ActiveStats.NetStats.NICs {
 			ei, ok := nic.ErrIn.Rate(4 * time.Second)
@@ -367,11 +368,11 @@ func (h *detail) update(opt Option, ps *perfstat.Perfstat, paused bool) error {
 	}
 
 	//BOTTLENECK DETAILS
-	dr := ps.TopCriticity(0.01, "bottleneck", fmt.Sprintf("%s.*", h.sys), false)
+	dr := ps.TopCriticity(0.01, "bottleneck", fmt.Sprintf("%s.*", h.group), false)
 	h.bottleneckText.Write(detectionTxt(dr), text.WriteReplace())
 
 	//RISK DETAILS
-	dr = ps.TopCriticity(0.01, "risk", fmt.Sprintf("%s.*", h.sys), false)
+	dr = ps.TopCriticity(0.01, "risk", fmt.Sprintf("%s.*", h.group), false)
 	h.riskText.Write(detectionTxt(dr), text.WriteReplace())
 
 	return nil
@@ -434,4 +435,8 @@ func updateSparkSeriesAbsoluteMax(value float64, unit string, sts *signalutils.T
 		sparkline22, _ := addSparkline(up, sts, fmt.Sprintf("%s %s%s", label, valuestr, unit2), false)
 		*sl = *sparkline22
 	}
+}
+
+func (h *detail) rootContainer() container.Option {
+	return h.rc
 }

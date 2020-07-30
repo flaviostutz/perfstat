@@ -146,3 +146,11 @@ func addSparkline(value int, ts *signalutils.Timeseries, label string, colorize 
 	}
 	return sparklineDanger2, err
 }
+
+func groupFromID(id string) string {
+	idx := strings.Index(id, "-")
+	if idx == -1 {
+		return "ERROR"
+	}
+	return id[:idx]
+}
