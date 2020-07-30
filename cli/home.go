@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"math"
+	"strings"
 	"time"
 
 	"github.com/flaviostutz/perfstat"
@@ -11,6 +12,7 @@ import (
 	"github.com/jedib0t/go-pretty/table"
 	"github.com/mum4k/termdash/cell"
 	"github.com/mum4k/termdash/container"
+	"github.com/mum4k/termdash/keyboard"
 	"github.com/mum4k/termdash/linestyle"
 	"github.com/mum4k/termdash/terminal/terminalapi"
 	"github.com/mum4k/termdash/widgets/button"
@@ -89,17 +91,17 @@ func (h *home) build(opt Option, ps *perfstat.Perfstat) (container.Option, error
 		return nil, err
 	}
 
-	h.diskButtonr, h.diskTextr, err = subsystemBox("DISK", 0, 53, "5", 15, 3, "")
+	h.diskButtonr, h.diskTextr, err = subsystemBox("DISK", 0, 51, "3", 15, 3, "")
 	if err != nil {
 		return nil, err
 	}
 
-	h.memButtonr, h.memTextr, err = subsystemBox("MEM", 0, 54, "6", 15, 3, "")
+	h.memButtonr, h.memTextr, err = subsystemBox("MEM", 0, 50, "2", 15, 3, "")
 	if err != nil {
 		return nil, err
 	}
 
-	h.netButtonr, h.netTextr, err = subsystemBox("NET", 0, 55, "7", 15, 3, "")
+	h.netButtonr, h.netTextr, err = subsystemBox("NET", 0, 52, "4", 15, 3, "")
 	if err != nil {
 		return nil, err
 	}
@@ -284,34 +286,14 @@ func (h *home) update(opt Option, ps *perfstat.Perfstat, paused bool) error {
 	h.statusText.Write("RUNNING", text.WriteReplace())
 
 	//DANGER LEVEL
-	os := 0.0
-	os = ps.Score("bottleneck", "cpu.*")
-	os = os + ps.Score("bottleneck", "mem.*")
-	os = os + ps.Score("bottleneck", "disk.*")
-	os = os + ps.Score("bottleneck", "net.*")
-	os = os + ps.Score("risk", "mem.*")
-	os = os + ps.Score("risk", "disk.*")
-	os = os + ps.Score("risk", "net.*")
-	danger := int(math.Round((os / 7.0) * 100))
-	h.dangerText.Write(fmt.Sprintf("Danger: %d", danger), text.WriteReplace())
-
-	//DANGER GRAPH
-	h.dangerSeries.Add(float64(danger))
 	od := ps.Score("", "")
-	dangerColor := cell.ColorRed
-	if od < 0.7 {
-		dangerColor = cell.ColorYellow
+	sparklineDanger2, err := addSparkline(perc(od), h.dangerSeries, "")
+	if err != nil {
+		return err
 	}
-	if od < 0.3 {
-		dangerColor = cell.ColorGreen
-	}
-	sparklineDanger2, err := sparkline.New(
-		sparkline.Color(dangerColor),
-	)
+	danger := dangerLevel(ps)
+	h.dangerText.Write(fmt.Sprintf("Danger: %d", danger), text.WriteReplace())
 	*h.sparklineDanger = *sparklineDanger2
-	for _, dv := range h.dangerSeries.Values {
-		h.sparklineDanger.Add([]int{int(dv.Value)})
-	}
 
 	//BOTTLENECK
 	scc := ps.Score("bottleneck", "cpu.*")
@@ -353,7 +335,7 @@ func (h *home) update(opt Option, ps *perfstat.Perfstat, paused bool) error {
 	//RISKS
 	scd = ps.Score("risk", "disk.*")
 	drd = ps.TopCriticity(0.01, "risk", "disk.*", false)
-	diskButton2r, diskText2r, err := subsystemBox("DISK", int(math.Round(scd*100.0)), 53, "5", 15, 3, renderDetectionResults(drd))
+	diskButton2r, diskText2r, err := subsystemBox("DISK", int(math.Round(scd*100.0)), 51, "3", 15, 3, renderDetectionResults(drd))
 	if err != nil {
 		return err
 	}
@@ -362,7 +344,7 @@ func (h *home) update(opt Option, ps *perfstat.Perfstat, paused bool) error {
 
 	scm = ps.Score("risk", "mem.*")
 	drm = ps.TopCriticity(0.01, "risk", "mem.*", false)
-	memButton2r, memText2r, err := subsystemBox("MEM", int(math.Round(scm*100.0)), 54, "6", 15, 3, renderDetectionResults(drm))
+	memButton2r, memText2r, err := subsystemBox("MEM", int(math.Round(scm*100.0)), 52, "4", 15, 3, renderDetectionResults(drm))
 	if err != nil {
 		return err
 	}
@@ -371,7 +353,7 @@ func (h *home) update(opt Option, ps *perfstat.Perfstat, paused bool) error {
 
 	scn = ps.Score("risk", "net.*")
 	drn = ps.TopCriticity(0.01, "risk", "net.*", false)
-	netButton2r, netText2r, err := subsystemBox("NET", int(math.Round(scn*100.0)), 55, "7", 15, 3, renderDetectionResults(drn))
+	netButton2r, netText2r, err := subsystemBox("NET", int(math.Round(scn*100.0)), 52, "4", 15, 3, renderDetectionResults(drn))
 	if err != nil {
 		return err
 	}
@@ -382,23 +364,6 @@ func (h *home) update(opt Option, ps *perfstat.Perfstat, paused bool) error {
 	t := table.NewWriter()
 	dr := ps.TopCriticity(0.01, "", "", false)
 	related := make([]detectors.Resource, 0)
-
-	// for _, d0 := range dr {
-	// 	found := false
-	// 	for _, r0 := range related {
-	// 		if r0 == d0.Res {
-	// 			found = true
-	// 		}
-	// 	}
-	// 	if !found {
-	// 		pn, pv, unit := formatResPropertyValue(d0)
-	// 		related = append(related, d0.Res)
-	// 		t.AppendRows([]table.Row{
-	// 			{fmt.Sprintf("%.0f", math.Round(d0.Score*100)), d0.Res.Name, pn, fmt.Sprintf("%s%s", pv, unit)},
-	// 		})
-	// 	}
-	// }
-
 	for _, d0 := range dr {
 		for _, r00 := range d0.Related {
 			found := false
@@ -416,7 +381,6 @@ func (h *home) update(opt Option, ps *perfstat.Perfstat, paused bool) error {
 			}
 		}
 	}
-
 	t.Style().Options.SeparateColumns = false
 	t.Style().Options.SeparateFooter = false
 	t.Style().Options.SeparateHeader = false
@@ -429,4 +393,38 @@ func (h *home) update(opt Option, ps *perfstat.Perfstat, paused bool) error {
 }
 
 func (h *home) onEvent(evt *terminalapi.Keyboard) {
+}
+
+func subsystemBox(blabel string, bvalue int, bKey keyboard.Key, bKeyText string, bwidth int, bheight int, status string) (*button.Button, *text.Text, error) {
+	//button
+	color := cell.ColorRed
+	if bvalue < 80 {
+		color = cell.ColorYellow
+	}
+	if bvalue < 5 {
+		color = cell.ColorGreen
+	}
+	c1, err := button.New(fmt.Sprintf("[%d] %s (%s)", bvalue, blabel, bKeyText),
+		func() error {
+			d := newDetail(strings.ToLower(blabel))
+			showScreen(&d)
+			return nil
+		},
+		button.GlobalKey(bKey),
+		button.Width(bwidth),
+		button.Height(bheight),
+		button.FillColor(color),
+		button.ShadowColor(cell.ColorBlack))
+	if err != nil {
+		return nil, nil, err
+	}
+
+	//status text
+	c2, err := text.New()
+	if err != nil {
+		return nil, nil, err
+	}
+	c2.Write(status, text.WriteReplace())
+
+	return c1, c2, nil
 }

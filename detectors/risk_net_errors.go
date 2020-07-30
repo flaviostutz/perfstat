@@ -51,7 +51,7 @@ func init() {
 					}
 					res := Resource{
 						Typ:           "process",
-						Name:          fmt.Sprintf("%s(%s)[%d]", proc.Cmdline, proc.Name, proc.Pid),
+						Name:          fmt.Sprintf("%s[%d]", proc.Name, proc.Pid),
 						PropertyName:  "net-errin-pps",
 						PropertyValue: perr,
 					}
@@ -97,7 +97,7 @@ func init() {
 					}
 					res := Resource{
 						Typ:           "process",
-						Name:          fmt.Sprintf("%s(%s)[%d]", proc.Cmdline, proc.Name, proc.Pid),
+						Name:          fmt.Sprintf("%s[%d]", proc.Name, proc.Pid),
 						PropertyName:  "net-errout-pps",
 						PropertyValue: perr,
 					}

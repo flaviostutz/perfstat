@@ -83,11 +83,13 @@ func main() {
 			curScreen.onEvent(k)
 		}
 		//exit
-		if k.Key == keyboard.KeyEsc || k.Key == keyboard.KeyCtrlC || k.Key == 113 {
+		if k.Key == keyboard.KeyCtrlC || k.Key == 113 {
 			cancel()
 			//pause/unpause
 		} else if k.Key == 80 || k.Key == 112 {
 			paused = !paused
+		} else if k.Key == keyboard.KeyEsc {
+			showScreen(&home{})
 		}
 	}
 

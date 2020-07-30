@@ -52,7 +52,7 @@ func init() {
 					}
 					res := Resource{
 						Typ:           "process",
-						Name:          fmt.Sprintf("%s(%s)[%d]", proc.Cmdline, proc.Name, proc.Pid),
+						Name:          fmt.Sprintf("%s[%d]", proc.Name, proc.Pid),
 						PropertyName:  "disk-write-bps",
 						PropertyValue: rate,
 					}
@@ -94,7 +94,7 @@ func init() {
 					}
 					res := Resource{
 						Typ:           "process",
-						Name:          fmt.Sprintf("%s(%s)[%d]", proc.Cmdline, proc.Name, proc.Pid),
+						Name:          fmt.Sprintf("%s[%d]", proc.Name, proc.Pid),
 						PropertyName:  "disk-read-bps",
 						PropertyValue: rate,
 					}
@@ -136,7 +136,7 @@ func init() {
 					}
 					res := Resource{
 						Typ:           "process",
-						Name:          fmt.Sprintf("%s(%s)[%d]", proc.Cmdline, proc.Name, proc.Pid),
+						Name:          fmt.Sprintf("%s[%d]", proc.Name, proc.Pid),
 						PropertyName:  "disk-write-ops",
 						PropertyValue: rate,
 					}
@@ -178,7 +178,7 @@ func init() {
 					}
 					res := Resource{
 						Typ:           "process",
-						Name:          fmt.Sprintf("%s(%s)[%d]", proc.Cmdline, proc.Name, proc.Pid),
+						Name:          fmt.Sprintf("%s[%d]", proc.Name, proc.Pid),
 						PropertyName:  "disk-read-ops",
 						PropertyValue: rate,
 					}

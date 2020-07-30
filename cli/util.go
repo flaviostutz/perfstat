@@ -5,42 +5,12 @@ import (
 	"math"
 	"strings"
 
+	"github.com/flaviostutz/perfstat"
 	"github.com/flaviostutz/perfstat/detectors"
+	"github.com/flaviostutz/signalutils"
 	"github.com/mum4k/termdash/cell"
-	"github.com/mum4k/termdash/keyboard"
-	"github.com/mum4k/termdash/widgets/button"
-	"github.com/mum4k/termdash/widgets/text"
+	"github.com/mum4k/termdash/widgets/sparkline"
 )
-
-func subsystemBox(blabel string, bvalue int, bKey keyboard.Key, bKeyText string, bwidth int, bheight int, status string) (*button.Button, *text.Text, error) {
-	//button
-	color := cell.ColorRed
-	if bvalue < 80 {
-		color = cell.ColorYellow
-	}
-	if bvalue < 5 {
-		color = cell.ColorGreen
-	}
-	c1, err := button.New(fmt.Sprintf("[%d] %s (%s)", bvalue, blabel, bKeyText),
-		func() error { return nil },
-		button.GlobalKey(bKey),
-		button.Width(bwidth),
-		button.Height(bheight),
-		button.FillColor(color),
-		button.ShadowColor(cell.ColorBlack))
-	if err != nil {
-		return nil, nil, err
-	}
-
-	//status text
-	c2, err := text.New()
-	if err != nil {
-		return nil, nil, err
-	}
-	c2.Write(status, text.WriteReplace())
-
-	return c1, c2, nil
-}
 
 func renderDetectionResults(drs []detectors.DetectionResult) string {
 
@@ -126,4 +96,35 @@ func formatResPropertyValue(res detectors.Resource) (formattedName string, forma
 	}
 
 	return formattedName, formattedValue, unit
+}
+
+func dangerLevel(ps *perfstat.Perfstat) int {
+	os := 0.0
+	os = ps.Score("bottleneck", "cpu.*")
+	os = os + ps.Score("bottleneck", "mem.*")
+	os = os + ps.Score("bottleneck", "disk.*")
+	os = os + ps.Score("bottleneck", "net.*")
+	os = os + ps.Score("risk", "mem.*")
+	os = os + ps.Score("risk", "disk.*")
+	os = os + ps.Score("risk", "net.*")
+	return int(math.Round((os / 7.0) * 100))
+}
+
+func addSparkline(value int, ts *signalutils.Timeseries, label string) (*sparkline.SparkLine, error) {
+	ts.Add(float64(value))
+	dangerColor := cell.ColorRed
+	if value < 80 {
+		dangerColor = cell.ColorYellow
+	}
+	if value < 20 {
+		dangerColor = cell.ColorGreen
+	}
+	sparklineDanger2, err := sparkline.New(
+		sparkline.Color(dangerColor),
+		sparkline.Label(label),
+	)
+	for _, dv := range ts.Values {
+		sparklineDanger2.Add([]int{int(dv.Value)})
+	}
+	return sparklineDanger2, err
 }
