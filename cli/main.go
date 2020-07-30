@@ -32,8 +32,10 @@ var (
 	rootc              *container.Container
 	ps                 *perfstat.Perfstat
 	curScreenCtxCancel context.CancelFunc
+	controller         *termdash.Controller
 	curScreen          screen
 	paused             bool
+	t                  *termbox.Terminal
 )
 
 func main() {
@@ -68,7 +70,8 @@ func main() {
 
 	logrus.Debugf("Initializing UI...")
 
-	t, err := termbox.New(termbox.ColorMode(terminalapi.ColorMode256))
+	var err error
+	t, err = termbox.New(termbox.ColorMode(terminalapi.ColorMode256))
 	if err != nil {
 		panic(err)
 	}
@@ -88,12 +91,25 @@ func main() {
 			//pause/unpause
 		} else if k.Key == 80 || k.Key == 112 {
 			paused = !paused
-		} else if k.Key == keyboard.KeyEsc {
+		} else if k.Key == keyboard.KeyEsc || k.Key == 68 || k.Key == 72 {
 			showScreen(&home{})
+		} else if k.Key == 49 {
+			d := newDetail("cpu")
+			showScreen(&d)
+		} else if k.Key == 50 {
+			d := newDetail("mem")
+			showScreen(&d)
+		} else if k.Key == 51 {
+			d := newDetail("disk")
+			showScreen(&d)
+		} else if k.Key == 52 {
+			d := newDetail("net")
+			showScreen(&d)
 		}
+		updateScreen()
 	}
 
-	controller, err := termdash.NewController(t, rootc, termdash.KeyboardSubscriber(evtHandler))
+	controller, err = termdash.NewController(t, rootc, termdash.KeyboardSubscriber(evtHandler))
 	if err != nil {
 		panic(err)
 	}
@@ -115,11 +131,7 @@ func main() {
 			t.Close()
 
 		case <-ticker:
-			err := curScreen.update(opt, ps, paused)
-			if err != nil {
-				return
-			}
-			err = controller.Redraw()
+			updateScreen()
 		}
 	}
 }
@@ -132,4 +144,15 @@ func showScreen(s screen) {
 	rootc.Update("root", r)
 
 	curScreen = s
+	// t.Clear()
+
+	updateScreen()
+}
+
+func updateScreen() {
+	err := curScreen.update(opt, ps, paused)
+	if err != nil {
+		return
+	}
+	err = controller.Redraw()
 }

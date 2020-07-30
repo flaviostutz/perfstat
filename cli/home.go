@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"math"
-	"strings"
 	"time"
 
 	"github.com/flaviostutz/perfstat"
@@ -287,7 +286,7 @@ func (h *home) update(opt Option, ps *perfstat.Perfstat, paused bool) error {
 
 	//DANGER LEVEL
 	od := ps.Score("", "")
-	sparklineDanger2, err := addSparkline(perc(od), h.dangerSeries, "")
+	sparklineDanger2, err := addSparkline(perc(od), h.dangerSeries, "", true)
 	if err != nil {
 		return err
 	}
@@ -406,8 +405,6 @@ func subsystemBox(blabel string, bvalue int, bKey keyboard.Key, bKeyText string,
 	}
 	c1, err := button.New(fmt.Sprintf("[%d] %s (%s)", bvalue, blabel, bKeyText),
 		func() error {
-			d := newDetail(strings.ToLower(blabel))
-			showScreen(&d)
 			return nil
 		},
 		button.GlobalKey(bKey),

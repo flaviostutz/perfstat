@@ -75,27 +75,41 @@ func formatResPropertyValue(res detectors.Resource) (formattedName string, forma
 	unit = res.PropertyName[idx2+1:]
 	value := res.PropertyValue
 
+	formattedValue, unit2 := formatValueUnit(value, unit)
+
+	return formattedName, formattedValue, unit2
+}
+
+func formatValueUnit(value float64, unit string) (v string, u string) {
+	// if true {
+	// 	return fmt.Sprintf("%.2f", value), unit
+	// }
 	if unit == "bps" {
 		unit = "Bps"
+	} else if unit == "b" {
+		unit = "B"
 	} else if unit == "perc" {
-		value = res.PropertyValue * 100
+		value = value * 100
 		unit = "%"
 	}
 
-	if value > 1000 {
-		value = value / 1000
-		unit = fmt.Sprintf("K%s", unit)
+	if value > 1000000000 {
+		value = value / 1000000000.0
+		unit = fmt.Sprintf("G%s", unit)
 	} else if value > 1000000 {
-		value = value / 1000000
+		value = value / 1000000.0
 		unit = fmt.Sprintf("M%s", unit)
+	} else if value > 1000 {
+		value = value / 1000.0
+		unit = fmt.Sprintf("K%s", unit)
 	}
 
-	formattedValue = fmt.Sprintf("%.2f", value)
+	formattedValue := fmt.Sprintf("%.2f", value)
 	if value <= 100 {
 		formattedValue = fmt.Sprintf("%.0f", value)
 	}
 
-	return formattedName, formattedValue, unit
+	return formattedValue, unit
 }
 
 func dangerLevel(ps *perfstat.Perfstat) int {
@@ -110,14 +124,18 @@ func dangerLevel(ps *perfstat.Perfstat) int {
 	return int(math.Round((os / 7.0) * 100))
 }
 
-func addSparkline(value int, ts *signalutils.Timeseries, label string) (*sparkline.SparkLine, error) {
-	ts.Add(float64(value))
-	dangerColor := cell.ColorRed
-	if value < 80 {
-		dangerColor = cell.ColorYellow
+func addSparkline(value int, ts *signalutils.Timeseries, label string, colorize bool) (*sparkline.SparkLine, error) {
+	if value != -1 {
+		ts.Add(float64(value))
 	}
-	if value < 20 {
-		dangerColor = cell.ColorGreen
+	dangerColor := cell.ColorYellow
+	if colorize {
+		if value >= 80 {
+			dangerColor = cell.ColorRed
+		}
+		if value < 20 {
+			dangerColor = cell.ColorGreen
+		}
 	}
 	sparklineDanger2, err := sparkline.New(
 		sparkline.Color(dangerColor),

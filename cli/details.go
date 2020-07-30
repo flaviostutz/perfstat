@@ -13,9 +13,7 @@ import (
 	"github.com/mum4k/termdash/container"
 	"github.com/mum4k/termdash/linestyle"
 	"github.com/mum4k/termdash/terminal/terminalapi"
-	"github.com/mum4k/termdash/widgetapi"
 	"github.com/mum4k/termdash/widgets/button"
-	"github.com/mum4k/termdash/widgets/donut"
 	"github.com/mum4k/termdash/widgets/sparkline"
 	"github.com/mum4k/termdash/widgets/text"
 )
@@ -37,9 +35,6 @@ type detail struct {
 
 	sparkline3   *sparkline.SparkLine
 	sparkSeries3 *signalutils.Timeseries
-
-	donut1  *donut.Donut
-	header2 interface{}
 
 	bottleneckText *text.Text
 	riskText       *text.Text
@@ -75,7 +70,7 @@ func (h *detail) build(opt Option, ps *perfstat.Perfstat) (container.Option, err
 	h.sparklineDanger, err = sparkline.New(
 		sparkline.Color(cell.ColorYellow),
 	)
-	ts := signalutils.NewTimeseries(10 * time.Minute)
+	ts := signalutils.NewTimeseries(4 * time.Minute)
 	h.dangerSeries = &ts
 
 	//HEADER
@@ -87,32 +82,22 @@ func (h *detail) build(opt Option, ps *perfstat.Perfstat) (container.Option, err
 	if err != nil {
 		return nil, err
 	}
-	ts1 := signalutils.NewTimeseries(10 * time.Minute)
+	ts1 := signalutils.NewTimeseries(4 * time.Minute)
 	h.sparkSeries1 = &ts1
 
 	h.sparkline2, err = sparkline.New(sparkline.Color(cell.ColorYellow))
 	if err != nil {
 		return nil, err
 	}
-	ts2 := signalutils.NewTimeseries(10 * time.Minute)
+	ts2 := signalutils.NewTimeseries(4 * time.Minute)
 	h.sparkSeries2 = &ts2
 
 	h.sparkline3, err = sparkline.New(sparkline.Color(cell.ColorYellow))
 	if err != nil {
 		return nil, err
 	}
-	ts3 := signalutils.NewTimeseries(10 * time.Minute)
+	ts3 := signalutils.NewTimeseries(4 * time.Minute)
 	h.sparkSeries3 = &ts3
-
-	h.donut1, err = donut.New(donut.CellOpts(cell.FgColor(cell.ColorYellow)))
-	if err != nil {
-		return nil, err
-	}
-
-	h.header2 = h.sparkline3
-	if h.sys == "net" {
-		h.header2 = h.donut1
-	}
 
 	//DETAIL TEXTS
 	h.bottleneckText, err = text.New()
@@ -166,7 +151,11 @@ func (h *detail) build(opt Option, ps *perfstat.Perfstat) (container.Option, err
 									container.PlaceWidget(h.sysButton),
 								),
 								container.Right(
-									container.PlaceWidget(h.header2.(widgetapi.Widget)),
+									container.PlaceWidget(h.sparkline3),
+									container.PaddingTop(0),
+									container.PaddingBottom(2),
+									container.PaddingLeft(3),
+									container.PaddingRight(3),
 								),
 							),
 						),
@@ -174,17 +163,17 @@ func (h *detail) build(opt Option, ps *perfstat.Perfstat) (container.Option, err
 							container.SplitVertical(
 								container.Left(
 									container.PlaceWidget(h.sparkline1),
-									container.PaddingBottom(1),
-									container.PaddingTop(1),
-									container.PaddingLeft(1),
-									container.PaddingRight(1),
+									container.PaddingTop(0),
+									container.PaddingBottom(2),
+									container.PaddingLeft(3),
+									container.PaddingRight(3),
 								),
 								container.Right(
 									container.PlaceWidget(h.sparkline2),
-									container.PaddingBottom(1),
-									container.PaddingTop(1),
-									container.PaddingLeft(1),
-									container.PaddingRight(1),
+									container.PaddingTop(0),
+									container.PaddingBottom(2),
+									container.PaddingLeft(3),
+									container.PaddingRight(3),
 								),
 							),
 						),
@@ -242,7 +231,7 @@ func (h *detail) update(opt Option, ps *perfstat.Perfstat, paused bool) error {
 
 	//DANGER GRAPH
 	od := ps.Score("", "")
-	sparklineDanger2, err := addSparkline(perc(od), h.dangerSeries, "")
+	sparklineDanger2, err := addSparkline(perc(od), h.dangerSeries, "", true)
 	if err != nil {
 		return err
 	}
@@ -271,49 +260,109 @@ func (h *detail) update(opt Option, ps *perfstat.Perfstat, paused bool) error {
 	*h.sysButton = *sysButton2
 
 	if h.sys == "cpu" {
-		//USER TIME
-		up1, ok := stats.TimeLoadPerc(&detectors.ActiveStats.CPUStats.Total.User, 4*time.Second)
-		if !ok {
-			up1 = -1
-		}
-		up := perc(up1)
-		sparkline12, err := addSparkline(up, h.sparkSeries1, fmt.Sprintf("User %d%%", up))
-		if err != nil {
-			return err
-		}
-		*h.sparkline1 = *sparkline12
+		updateSparkSeriesTimeLoad(&detectors.ActiveStats.CPUStats.Total.User, h.sparkSeries1, "User", h.sparkline1, false)
+		updateSparkSeriesTimeLoad(&detectors.ActiveStats.CPUStats.Total.IOWait, h.sparkSeries2, "IOWait", h.sparkline2, false)
+		updateSparkSeriesTimeLoad(&detectors.ActiveStats.CPUStats.Total.Idle, h.sparkSeries3, "Total", h.sparkline3, true)
 
-		//IOWAIT TIME
-		up1, ok = stats.TimeLoadPerc(&detectors.ActiveStats.CPUStats.Total.IOWait, 4*time.Second)
-		if !ok {
-			up1 = -1
+	} else if h.sys == "mem" {
+		used, ok := detectors.ActiveStats.MemStats.Used.Last()
+		if ok {
+			swapUsed, ok := detectors.ActiveStats.MemStats.SwapUsed.Last()
+			if ok {
+				updateSparkSeriesAbsoluteMax(used.Value+swapUsed.Value, "B", h.sparkSeries3, "Total", h.sparkline3, float64(detectors.ActiveStats.MemStats.Total+detectors.ActiveStats.MemStats.SwapTotal))
+				updateSparkSeriesAbsoluteMax(used.Value, "B", h.sparkSeries1, "RAM", h.sparkline1, float64(detectors.ActiveStats.MemStats.Total))
+				updateSparkSeriesAbsoluteMax(swapUsed.Value, "B", h.sparkSeries2, "SWAP", h.sparkline2, float64(detectors.ActiveStats.MemStats.SwapTotal))
+			}
 		}
-		up = perc(up1)
-		sparkline22, err := addSparkline(up, h.sparkSeries2, fmt.Sprintf("IOWait %d%%", up))
-		if err != nil {
-			return err
-		}
-		*h.sparkline2 = *sparkline22
 
-		//OVERALL LOAD
-		up1, ok = stats.TimeLoadPerc(&detectors.ActiveStats.CPUStats.Total.Idle, 4*time.Second)
-		if !ok {
-			up1 = -1
+	} else if h.sys == "disk" {
+		worstTotal := 0.0
+		worstUsed := 0.0
+		worstPerc := 0.0
+		for _, part := range detectors.ActiveStats.DiskStats.Partitions {
+			free, ok := part.Free.Last()
+			if !ok {
+				continue
+			}
+			used := float64(part.Total) - free.Value
+			perc := used / float64(part.Total)
+			if perc > worstPerc {
+				worstTotal = float64(part.Total)
+				worstUsed = used
+				worstPerc = worstUsed / worstTotal
+			}
 		}
-		up = perc(1 - up1)
-		dc := cell.ColorRed
-		if up < 80 {
-			dc = cell.ColorYellow
+		updateSparkSeriesAbsoluteMax(worstUsed, "B", h.sparkSeries3, "Total", h.sparkline3, worstTotal)
+
+		rwc := 0.0
+		rwb := 0.0
+		for _, disk := range detectors.ActiveStats.DiskStats.Disks {
+			rc, ok := disk.ReadCount.Rate(4 * time.Second)
+			if !ok {
+				continue
+			}
+			wc, ok := disk.WriteCount.Rate(4 * time.Second)
+			if !ok {
+				continue
+			}
+			rwc = rwc + rc + wc
+
+			rb, ok := disk.ReadBytes.Rate(4 * time.Second)
+			if !ok {
+				continue
+			}
+			wb, ok := disk.WriteBytes.Rate(4 * time.Second)
+			if !ok {
+				continue
+			}
+			rwb = rwb + rb + wb
 		}
-		if up < 20 {
-			dc = cell.ColorGreen
+
+		updateSparkSeriesAbsoluteMax(rwc, "ops", h.sparkSeries1, "R/W", h.sparkline1, -1)
+		updateSparkSeriesAbsoluteMax(rwb, "bps", h.sparkSeries2, "R/W", h.sparkline2, -1)
+
+	} else if h.sys == "net" {
+		errorsTotal := 0.0
+		for _, nic := range detectors.ActiveStats.NetStats.NICs {
+			ei, ok := nic.ErrIn.Rate(4 * time.Second)
+			if !ok {
+				continue
+			}
+			eo, ok := nic.ErrOut.Rate(4 * time.Second)
+			if !ok {
+				continue
+			}
+
+			errorsTotal = errorsTotal + ei + eo
 		}
-		donut12, err := donut.New(donut.CellOpts(cell.FgColor(dc)))
-		if err != nil {
-			return err
+		updateSparkSeriesAbsoluteMax(errorsTotal, "ops", h.sparkSeries3, "Errors", h.sparkline3, -1)
+
+		rwc := 0.0
+		rwb := 0.0
+		for _, nic := range detectors.ActiveStats.NetStats.NICs {
+			rc, ok := nic.PacketsRecv.Rate(4 * time.Second)
+			if !ok {
+				continue
+			}
+			wc, ok := nic.PacketsSent.Rate(4 * time.Second)
+			if !ok {
+				continue
+			}
+			rwc = rwc + rc + wc
+
+			rb, ok := nic.BytesRecv.Rate(4 * time.Second)
+			if !ok {
+				continue
+			}
+			wb, ok := nic.BytesSent.Rate(4 * time.Second)
+			if !ok {
+				continue
+			}
+			rwb = rwb + rb + wb
 		}
-		donut12.Percent(up)
-		*h.donut1 = *donut12
+
+		updateSparkSeriesAbsoluteMax(rwc, "pps", h.sparkSeries1, "IN/OUT", h.sparkline1, -1)
+		updateSparkSeriesAbsoluteMax(rwb, "bps", h.sparkSeries2, "IN/OUT", h.sparkline2, -1)
 
 	}
 
@@ -358,4 +407,31 @@ func detectionTxt(dr []detectors.DetectionResult) string {
 		}
 	}
 	return r
+}
+
+func updateSparkSeriesTimeLoad(timeLoadTs *signalutils.Timeseries, sts *signalutils.Timeseries, label string, sl *sparkline.SparkLine, inverse bool) {
+	up1, ok := stats.TimeLoadPerc(timeLoadTs, 4*time.Second)
+	if !ok {
+		return
+	}
+	if inverse {
+		up1 = 1 - up1
+	}
+	up := perc(up1)
+	sparkline22, _ := addSparkline(up, sts, fmt.Sprintf("%s %d%%", label, up), true)
+	*sl = *sparkline22
+}
+
+func updateSparkSeriesAbsoluteMax(value float64, unit string, sts *signalutils.Timeseries, label string, sl *sparkline.SparkLine, maxValue float64) {
+	if maxValue != -1 {
+		up := perc(value / maxValue)
+		valuestr, unit2 := formatValueUnit(value, unit)
+		sparkline22, _ := addSparkline(up, sts, fmt.Sprintf("%s %s%s %d%%", label, valuestr, unit2, up), true)
+		*sl = *sparkline22
+	} else {
+		valuestr, unit2 := formatValueUnit(value, unit)
+		up := int(value * 100)
+		sparkline22, _ := addSparkline(up, sts, fmt.Sprintf("%s %s%s", label, valuestr, unit2), false)
+		*sl = *sparkline22
+	}
 }

@@ -13,10 +13,9 @@ if [ "$RUN_TESTS" == "true" ]; then
 
     #cpu
     # stress-ng -c 4
-    #io
-    # stress-ng -i 2
     #disk
-    # stress-ng -d 5
+    # stress-ng --io 5
+    # stress-ng --hdd 5
     #socket
     # stress-ng -S 5
     # stress-ng --udp 5
