@@ -23,7 +23,7 @@ type Option struct {
 
 type screen interface {
 	build(opt Option, ps *perfstat.Perfstat) (container.Option, error)
-	update(opt Option, ps *perfstat.Perfstat) error
+	update(opt Option, ps *perfstat.Perfstat, paused bool) error
 	onEvent(evt *terminalapi.Keyboard)
 }
 
@@ -39,7 +39,7 @@ var (
 func main() {
 
 	flag.Float64Var(&opt.freq, "freq", 1.0, "Analysis frequency. Changes data capture and display refresh frequency. Higher consumes more CPU. Defaults to 1 Hz")
-	flag.Float64Var(&opt.sensibility, "sensibility", 5.0, "Lower values (ex.: 0.2) means larger timespan in analysis, leading to more accurate results but slower responses. Higher values (ex.: 5) means short time analysis but may lead to false positives. Defaults to 1.0")
+	flag.Float64Var(&opt.sensibility, "sensibility", 6.0, "Lower values (ex.: 0.2) means larger timespan in analysis, leading to more accurate results but slower responses. Higher values (ex.: 5) means short time analysis but may lead to false positives. Defaults to 1.0 which means detecting a continuous 100% CPU in 30s")
 	flag.Parse()
 
 	if opt.freq > 20 || opt.freq < 0.05 {
@@ -52,7 +52,7 @@ func main() {
 
 	logrus.Debugf("Initializing Perfstat engine")
 	opt2 := detectors.NewOptions()
-	dur := time.Duration(30*opt.sensibility) * time.Second
+	dur := time.Duration(30/opt.sensibility) * time.Second
 	opt2.CPULoadAvgDuration = dur
 	opt2.IORateLoadDuration = dur
 	opt2.IOLimitsSpan = dur
@@ -113,50 +113,13 @@ func main() {
 			t.Close()
 
 		case <-ticker:
-			if !paused {
-				err := curScreen.update(opt, ps)
-				if err != nil {
-					return
-				}
-				err = controller.Redraw()
+			err := curScreen.update(opt, ps, paused)
+			if err != nil {
+				return
 			}
+			err = controller.Redraw()
 		}
 	}
-
-	// signalutils.StartWorker(ctx, "perstat-render", func() error {
-	// 	err := curScreen.update(opt, ps)
-	// 	if err != nil {
-	// 		return err
-	// 	}
-	// 	err = controller.Redraw()
-	// 	return err
-	// }, opt.freq/2.0, opt.freq, false)
-
-	// err = termdash.Run(ctx,
-	// 	t,
-	// 	rootc,
-	// 	termdash.KeyboardSubscriber(evtHandler),
-	// 	termdash.RedrawInterval(time.Duration(1.0/opt.freq)*time.Second))
-	// if err != nil {
-	// 	panic(err)
-	// }
-
-	// for {
-	// 	fmt.Printf("\n\n\n")
-	// 	fmt.Printf("BOTTLENECK -> [SCORE: %.0f]  CPU: %.0f  DISK: %.0f  MEM: %.0f  NET: %.0f\n", p.Score("bottleneck", "")*100, p.Score("bottleneck", "cpu.*")*100, p.Score("bottleneck", "disk.*")*100, p.Score("bottleneck", "mem.*")*100, p.Score("bottleneck", "net.*")*100)
-	// 	fmt.Printf("RISK       -> [SCORE: %.0f]  CPU: %.0f  DISK: %.0f  MEM: %.0f  NET: %.0f\n", p.Score("risk", "")*100, p.Score("risk", "cpu.*")*100, p.Score("risk", "disk.*")*100, p.Score("risk", "mem.*")*100, p.Score("risk", "net.*")*100)
-	// 	fmt.Printf("\n\n")
-	// 	crit := ps.TopCriticity(0.01, "", "", true)
-	// 	for _, is := range crit {
-	// 		// fmt.Printf(">>>> %s\n", is.String())
-	// 		fmt.Printf("[ %.2f %s ] (%s %s=%.2f) (%s)\n", is.Score, is.ID, is.Res.Name, is.Res.PropertyName, is.Res.PropertyValue, is.Typ)
-	// 		for _, r := range is.Related {
-	// 			fmt.Printf("    > RELATED: %s [%s=%.2f]\n", r.Name, r.PropertyName, r.PropertyValue)
-	// 		}
-	// 	}
-	// 	time.Sleep(5 * time.Second)
-	// }
-
 }
 
 func showScreen(s screen) {

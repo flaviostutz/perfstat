@@ -1,10 +1,13 @@
-babasibpackage main
+package main
 
 import (
 	"fmt"
 	"math"
+	"time"
 
 	"github.com/flaviostutz/perfstat"
+	"github.com/flaviostutz/perfstat/detectors"
+	"github.com/flaviostutz/signalutils"
 	"github.com/jedib0t/go-pretty/table"
 	"github.com/mum4k/termdash/cell"
 	"github.com/mum4k/termdash/container"
@@ -36,7 +39,9 @@ type home struct {
 	netButtonr  *button.Button
 	netTextr    *text.Text
 
-	relatedText *text.Text
+	relatedText  *text.Text
+	dangerSeries *signalutils.Timeseries
+	pausedShow   bool
 }
 
 func (h *home) build(opt Option, ps *perfstat.Perfstat) (container.Option, error) {
@@ -61,6 +66,8 @@ func (h *home) build(opt Option, ps *perfstat.Perfstat) (container.Option, error
 	h.sparklineDanger, err = sparkline.New(
 		sparkline.Color(cell.ColorYellow),
 	)
+	ts := signalutils.NewTimeseries(10 * time.Minute)
+	h.dangerSeries = &ts
 
 	h.cpuButton, h.cpuText, err = subsystemBox("CPU", 0, 49, "1", 15, 5, "")
 	if err != nil {
@@ -133,7 +140,7 @@ func (h *home) build(opt Option, ps *perfstat.Perfstat) (container.Option, error
 		container.Bottom(
 			container.SplitHorizontal(
 				container.Top(
-					container.BorderTitle("Bottleneck"),
+					container.BorderTitle("BOTTLENECKS"),
 					container.Border(linestyle.Light),
 					container.PaddingTop(1),
 					container.Border(linestyle.Round),
@@ -197,7 +204,7 @@ func (h *home) build(opt Option, ps *perfstat.Perfstat) (container.Option, error
 					container.SplitVertical(
 						container.Left(
 							container.PaddingTop(1),
-							container.BorderTitle("Risk"),
+							container.BorderTitle("RISKS"),
 							container.Border(linestyle.Light),
 							container.Border(linestyle.Round),
 							container.MarginRight(1),
@@ -262,31 +269,51 @@ func (h *home) build(opt Option, ps *perfstat.Perfstat) (container.Option, error
 	return c, nil
 }
 
-func (h *home) update(opt Option, ps *perfstat.Perfstat) error {
+func (h *home) update(opt Option, ps *perfstat.Perfstat, paused bool) error {
+
+	//STATUS
+	if paused {
+		status := " "
+		if h.pausedShow {
+			status = "PAUSED"
+		}
+		h.statusText.Write(status, text.WriteReplace())
+		h.pausedShow = !h.pausedShow
+		return nil
+	}
+	h.statusText.Write("RUNNING", text.WriteReplace())
 
 	//DANGER LEVEL
-	ds := ps.TopCriticity(0, "", "", false)
-	danger := 0.0
-	for _, d := range ds {
-		danger = danger + d.Score
+	os := 0.0
+	os = ps.Score("bottleneck", "cpu.*")
+	os = os + ps.Score("bottleneck", "mem.*")
+	os = os + ps.Score("bottleneck", "disk.*")
+	os = os + ps.Score("bottleneck", "net.*")
+	os = os + ps.Score("risk", "mem.*")
+	os = os + ps.Score("risk", "disk.*")
+	os = os + ps.Score("risk", "net.*")
+	danger := int(math.Round((os / 7.0) * 100))
+	h.dangerText.Write(fmt.Sprintf("Danger: %d", danger), text.WriteReplace())
+
+	//DANGER GRAPH
+	h.dangerSeries.Add(float64(danger))
+	od := ps.Score("", "")
+	dangerColor := cell.ColorRed
+	if od < 0.7 {
+		dangerColor = cell.ColorYellow
 	}
-	h.dangerText.Write(fmt.Sprintf("Danger: %d", int(math.Round(danger*100))), text.WriteReplace())
+	if od < 0.3 {
+		dangerColor = cell.ColorGreen
+	}
+	sparklineDanger2, err := sparkline.New(
+		sparkline.Color(dangerColor),
+	)
+	*h.sparklineDanger = *sparklineDanger2
+	for _, dv := range h.dangerSeries.Values {
+		h.sparklineDanger.Add([]int{int(dv.Value)})
+	}
 
-	h.sparklineDanger.Add([]int{21, 23, 43, 47, 42, 20, 21, 23, 43, 47, 42, 20, 21, 23, 43, 47, 42, 20, 7})
-
-	t := table.NewWriter()
-	t.AppendRows([]table.Row{
-		{1, "Arya", "Stark", 3000},
-		{20, "Jon", "Snow", 2000, "You know nothing, Jon Snow!"},
-	})
-	t.Style().Options.SeparateColumns = false
-	t.Style().Options.SeparateFooter = false
-	t.Style().Options.SeparateHeader = false
-	t.Style().Options.SeparateRows = false
-	t.Style().Options.DrawBorder = false
-	tr := t.Render()
-	h.relatedText.Write(tr, text.WriteReplace())
-
+	//BOTTLENECK
 	scc := ps.Score("bottleneck", "cpu.*")
 	drc := ps.TopCriticity(0.01, "bottleneck", "cpu.*", false)
 	cpuButton2, cpuText2, err := subsystemBox("CPU", int(math.Round(scc*100.0)), 49, "1", 15, 5, renderDetectionResults(drc))
@@ -322,6 +349,81 @@ func (h *home) update(opt Option, ps *perfstat.Perfstat) error {
 	}
 	*h.netButton = *netButton2
 	*h.netText = *netText2
+
+	//RISKS
+	scd = ps.Score("risk", "disk.*")
+	drd = ps.TopCriticity(0.01, "risk", "disk.*", false)
+	diskButton2r, diskText2r, err := subsystemBox("DISK", int(math.Round(scd*100.0)), 53, "5", 15, 3, renderDetectionResults(drd))
+	if err != nil {
+		return err
+	}
+	*h.diskButtonr = *diskButton2r
+	*h.diskTextr = *diskText2r
+
+	scm = ps.Score("risk", "mem.*")
+	drm = ps.TopCriticity(0.01, "risk", "mem.*", false)
+	memButton2r, memText2r, err := subsystemBox("MEM", int(math.Round(scm*100.0)), 54, "6", 15, 3, renderDetectionResults(drm))
+	if err != nil {
+		return err
+	}
+	*h.memButtonr = *memButton2r
+	*h.memTextr = *memText2r
+
+	scn = ps.Score("risk", "net.*")
+	drn = ps.TopCriticity(0.01, "risk", "net.*", false)
+	netButton2r, netText2r, err := subsystemBox("NET", int(math.Round(scn*100.0)), 55, "7", 15, 3, renderDetectionResults(drn))
+	if err != nil {
+		return err
+	}
+	*h.netButtonr = *netButton2r
+	*h.netTextr = *netText2r
+
+	//RELATED
+	t := table.NewWriter()
+	dr := ps.TopCriticity(0.01, "", "", false)
+	related := make([]detectors.Resource, 0)
+
+	// for _, d0 := range dr {
+	// 	found := false
+	// 	for _, r0 := range related {
+	// 		if r0 == d0.Res {
+	// 			found = true
+	// 		}
+	// 	}
+	// 	if !found {
+	// 		pn, pv, unit := formatResPropertyValue(d0)
+	// 		related = append(related, d0.Res)
+	// 		t.AppendRows([]table.Row{
+	// 			{fmt.Sprintf("%.0f", math.Round(d0.Score*100)), d0.Res.Name, pn, fmt.Sprintf("%s%s", pv, unit)},
+	// 		})
+	// 	}
+	// }
+
+	for _, d0 := range dr {
+		for _, r00 := range d0.Related {
+			found := false
+			for _, r0 := range related {
+				if r0 == r00 {
+					found = true
+				}
+			}
+			if !found {
+				pn, pv, unit := formatResPropertyValue(r00)
+				related = append(related, r00)
+				t.AppendRows([]table.Row{
+					{fmt.Sprintf("%.0f", math.Round(d0.Score*100)), r00.Name, pn, fmt.Sprintf("%s%s", pv, unit)},
+				})
+			}
+		}
+	}
+
+	t.Style().Options.SeparateColumns = false
+	t.Style().Options.SeparateFooter = false
+	t.Style().Options.SeparateHeader = false
+	t.Style().Options.SeparateRows = false
+	t.Style().Options.DrawBorder = false
+	tr := t.Render()
+	h.relatedText.Write(fmt.Sprintf("%s ", tr), text.WriteReplace())
 
 	return nil
 }
