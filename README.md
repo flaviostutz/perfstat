@@ -14,6 +14,26 @@ After hundred of hours looking for metrics on CLI and Prometheus/Grafana tools, 
 
 **If you are a developer** too, help system admins find problems more quickly by implementing some of the [Issues](https://github.com/flaviostutz/perfstat/issues) so they can keep your software up! If in doubt, ask for a task in "Issues" and we'd be glad to answer.
 
+* CPU related issues
+
+<img src="./res/demo1.gif" />
+
+
+* Disk related issues
+
+<img src="./res/demo2.gif" />
+
+
+* Network related issues
+
+<img src="./res/demo3.gif" />
+
+
+* Memory related issues
+
+<img src="./res/demo4.gif" />
+
+
 Perfstat has various interfaces:
 
 * **CLI**: ```perfstat``` - for local diagnostics
@@ -38,7 +58,7 @@ Output
 * Start exporter
 
 ```sh
-perfstat --prom-enable --prom-bind 0.0.0.0 --prom-port 8880 --prom-path /metrics
+perfstat prometheus
 ```
 
 * Check metrics
@@ -51,20 +71,27 @@ curl localhost:8880/metrics
 
 #### Prometheus Metrics
 
-* **issue_criticity** - criticity score for active issues
+* **danger_level** - overall danger levels
+	* label "type" - bottleneck or risck
+	* label "group" - subsystem: net, disk, mem, cpu
+
   * label resource - cpu, mem, disk, net
   * label name - cpu:1, disk-/mnt/test, nic:eth0
 
-* **issue_cpu_perc** - cpu load for active issues
-  * label cpu - cpu:1, cpu:total
-  * label type - iowait, used
+* **issue_score** - independent issues score
+	* label "type" - bottleneck or risck
+	* label "group" - subsystem: net, disk, mem, cpu
+	* label "id" - issue identification
+	* label "resource_name" - name of the resource that was used during issue detection
+	* label "resource_property_name" - property analysed
+	* label "related_resource_name" - secondary (maybe the a root cause) related to the issue
 
-* **issue_mem_perc** - mem perc for active issues
-  * label type - ram used, swap used
-  
-* **issue_disk_perc** - disk storage for active issues
-  * label mount - /mnt/test1
-  * label type - used
+* **issue_resource_value** - mem perc for active issues
+	* label "type" - bottleneck or risck
+	* label "group" - subsystem: net, disk, mem, cpu
+	* label "id" - issue identification
+	* label "resource_name" - name of the resource that was used during issue detection
+	* label "resource_property_name" - property analysed
 
 ## Issue Detectors
 

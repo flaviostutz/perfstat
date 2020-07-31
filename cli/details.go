@@ -12,6 +12,7 @@ import (
 	"github.com/mum4k/termdash/cell"
 	"github.com/mum4k/termdash/container"
 	"github.com/mum4k/termdash/linestyle"
+	"github.com/mum4k/termdash/terminal/termbox"
 	"github.com/mum4k/termdash/terminal/terminalapi"
 	"github.com/mum4k/termdash/widgets/button"
 	"github.com/mum4k/termdash/widgets/sparkline"
@@ -212,7 +213,7 @@ func newDetails(group string, opt Option, ps *perfstat.Perfstat) (*detail, error
 	return h, nil
 }
 
-func (h *detail) update(opt Option, ps *perfstat.Perfstat, paused bool) error {
+func (h *detail) update(opt Option, ps *perfstat.Perfstat, paused bool, term *termbox.Terminal) error {
 
 	//STATUS
 	if paused {
@@ -395,7 +396,8 @@ func createButton(sys string, color cell.Color) (*button.Button, error) {
 }
 
 func detectionTxt(dr []detectors.DetectionResult) string {
-	r := ""
+	r := " "
+	related := make(map[string]string, 0)
 	for _, d := range dr {
 		if r == "" {
 			r = renderDR(d)
@@ -403,8 +405,13 @@ func detectionTxt(dr []detectors.DetectionResult) string {
 			r = fmt.Sprintf("%s\n%s", r, renderDR(d))
 		}
 		for _, rel := range d.Related {
-			pn, pv, unit := formatResPropertyValue(rel)
-			r = fmt.Sprintf("%s\n  > %s %s %s%s", r, rel.Name, pn, pv, unit)
+			k := fmt.Sprintf("%s-%s", rel.Typ, rel.Name)
+			_, found := related[k]
+			if !found {
+				related[k] = "OK"
+				pn, pv, unit := formatResPropertyValue(rel)
+				r = fmt.Sprintf("%s\n  > %s %s %s%s", r, rel.Name, pn, pv, unit)
+			}
 		}
 	}
 	return r

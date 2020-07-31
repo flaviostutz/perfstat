@@ -6,13 +6,13 @@ import (
 	"time"
 
 	"github.com/flaviostutz/perfstat"
-	"github.com/flaviostutz/perfstat/detectors"
 	"github.com/flaviostutz/signalutils"
 	"github.com/jedib0t/go-pretty/table"
 	"github.com/mum4k/termdash/cell"
 	"github.com/mum4k/termdash/container"
 	"github.com/mum4k/termdash/keyboard"
 	"github.com/mum4k/termdash/linestyle"
+	"github.com/mum4k/termdash/terminal/termbox"
 	"github.com/mum4k/termdash/terminal/terminalapi"
 	"github.com/mum4k/termdash/widgets/button"
 	"github.com/mum4k/termdash/widgets/sparkline"
@@ -276,7 +276,13 @@ func newHome(opt Option, ps *perfstat.Perfstat) (*home, error) {
 	return h, nil
 }
 
-func (h *home) update(opt Option, ps *perfstat.Perfstat, paused bool) error {
+func (h *home) update(opt Option, ps *perfstat.Perfstat, paused bool, term *termbox.Terminal) error {
+
+	tw := term.Size().X
+	th := term.Size().Y
+
+	bw := int(math.Max(float64(tw/7), 6.0))
+	bh := int(math.Max(float64(th)/6.0, 3.0))
 
 	//STATUS
 	if paused {
@@ -303,7 +309,7 @@ func (h *home) update(opt Option, ps *perfstat.Perfstat, paused bool) error {
 	//BOTTLENECK
 	scc := ps.Score("bottleneck", "cpu.*")
 	drc := ps.TopCriticity(0.01, "bottleneck", "cpu.*", false)
-	cpuButton2, cpuText2, err := subsystemBox("CPU", int(math.Round(scc*100.0)), 49, "1", 15, 5, renderDetectionResults(drc))
+	cpuButton2, cpuText2, err := subsystemBox("CPU", int(math.Round(scc*100.0)), 49, "1", bw, bh, renderDetectionResults(drc))
 	if err != nil {
 		return err
 	}
@@ -312,7 +318,7 @@ func (h *home) update(opt Option, ps *perfstat.Perfstat, paused bool) error {
 
 	scm := ps.Score("bottleneck", "mem.*")
 	drm := ps.TopCriticity(0.01, "bottleneck", "mem.*", false)
-	memButton2, memText2, err := subsystemBox("MEM", int(math.Round(scm*100.0)), 50, "2", 15, 5, renderDetectionResults(drm))
+	memButton2, memText2, err := subsystemBox("MEM", int(math.Round(scm*100.0)), 50, "2", bw, bh, renderDetectionResults(drm))
 	if err != nil {
 		return err
 	}
@@ -321,7 +327,7 @@ func (h *home) update(opt Option, ps *perfstat.Perfstat, paused bool) error {
 
 	scd := ps.Score("bottleneck", "disk.*")
 	drd := ps.TopCriticity(0.01, "bottleneck", "disk.*", false)
-	diskButton2, diskText2, err := subsystemBox("DISK", int(math.Round(scd*100.0)), 51, "3", 15, 5, renderDetectionResults(drd))
+	diskButton2, diskText2, err := subsystemBox("DISK", int(math.Round(scd*100.0)), 51, "3", bw, bh, renderDetectionResults(drd))
 	if err != nil {
 		return err
 	}
@@ -330,7 +336,7 @@ func (h *home) update(opt Option, ps *perfstat.Perfstat, paused bool) error {
 
 	scn := ps.Score("bottleneck", "net.*")
 	drn := ps.TopCriticity(0.01, "bottleneck", "net.*", false)
-	netButton2, netText2, err := subsystemBox("NET", int(math.Round(scn*100.0)), 52, "4", 15, 5, renderDetectionResults(drn))
+	netButton2, netText2, err := subsystemBox("NET", int(math.Round(scn*100.0)), 52, "4", bw, bh, renderDetectionResults(drn))
 	if err != nil {
 		return err
 	}
@@ -340,7 +346,7 @@ func (h *home) update(opt Option, ps *perfstat.Perfstat, paused bool) error {
 	//RISKS
 	scd = ps.Score("risk", "disk.*")
 	drd = ps.TopCriticity(0.01, "risk", "disk.*", false)
-	diskButton2r, diskText2r, err := subsystemBox("DISK", int(math.Round(scd*100.0)), 51, "3", 15, 3, renderDetectionResults(drd))
+	diskButton2r, diskText2r, err := subsystemBox("DISK", int(math.Round(scd*100.0)), 51, "3", bw, bh-2, renderDetectionResults(drd))
 	if err != nil {
 		return err
 	}
@@ -349,7 +355,7 @@ func (h *home) update(opt Option, ps *perfstat.Perfstat, paused bool) error {
 
 	scm = ps.Score("risk", "mem.*")
 	drm = ps.TopCriticity(0.01, "risk", "mem.*", false)
-	memButton2r, memText2r, err := subsystemBox("MEM", int(math.Round(scm*100.0)), 52, "4", 15, 3, renderDetectionResults(drm))
+	memButton2r, memText2r, err := subsystemBox("MEM", int(math.Round(scm*100.0)), 52, "4", bw, bh-2, renderDetectionResults(drm))
 	if err != nil {
 		return err
 	}
@@ -358,7 +364,7 @@ func (h *home) update(opt Option, ps *perfstat.Perfstat, paused bool) error {
 
 	scn = ps.Score("risk", "net.*")
 	drn = ps.TopCriticity(0.01, "risk", "net.*", false)
-	netButton2r, netText2r, err := subsystemBox("NET", int(math.Round(scn*100.0)), 52, "4", 15, 3, renderDetectionResults(drn))
+	netButton2r, netText2r, err := subsystemBox("NET", int(math.Round(scn*100.0)), 52, "4", bw, bh-2, renderDetectionResults(drn))
 	if err != nil {
 		return err
 	}
@@ -368,18 +374,14 @@ func (h *home) update(opt Option, ps *perfstat.Perfstat, paused bool) error {
 	//RELATED
 	t := table.NewWriter()
 	dr := ps.TopCriticity(0.01, "", "", false)
-	related := make([]detectors.Resource, 0)
+	related := make(map[string]string, 0)
 	for _, d0 := range dr {
 		for _, r00 := range d0.Related {
-			found := false
-			for _, r0 := range related {
-				if r0 == r00 {
-					found = true
-				}
-			}
+			k := fmt.Sprintf("%s-%s", r00.Typ, r00.Name)
+			_, found := related[k]
 			if !found {
 				pn, pv, unit := formatResPropertyValue(r00)
-				related = append(related, r00)
+				related[k] = "OK"
 				t.AppendRows([]table.Row{
 					{fmt.Sprintf("%.0f", math.Round(d0.Score*100)), r00.Name, pn, fmt.Sprintf("%s%s", pv, unit)},
 				})

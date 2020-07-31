@@ -20,6 +20,8 @@ if [ "$RUN_TESTS" == "true" ]; then
     # stress-ng -S 5
     # stress-ng --udp 5
     #mem
+    # stress-ng --vm-bytes $(awk '/MemAvailable/{printf"%d\n", $2 * 1.9;}' < /proc/meminfo)k --vm-keep -m 1
+
     # stress-ng --vm 5
     # stress-ng -c 2 -i 1 -m 1 --vm-bytes 128M -t 10s
     # stress-ng --disk 2

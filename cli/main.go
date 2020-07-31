@@ -27,7 +27,7 @@ type Option struct {
 
 type screen interface {
 	rootContainer() container.Option
-	update(opt Option, ps *perfstat.Perfstat, paused bool) error
+	update(opt Option, ps *perfstat.Perfstat, paused bool, term *termbox.Terminal) error
 	onEvent(evt *terminalapi.Keyboard)
 }
 
@@ -44,6 +44,7 @@ var (
 )
 
 func main() {
+	loglevel := logrus.ErrorLevel
 	screens = make(map[string]screen)
 
 	flag.Float64Var(&opt.freq, "freq", 1.0, "Analysis frequency. Changes data capture and display refresh frequency. Higher consumes more CPU. Defaults to 1 Hz")
@@ -56,7 +57,6 @@ func main() {
 	promf.StringVar(&opt.promBindHost, "host", "0.0.0.0", "Prometheus exporter bind host. defaults to 0.0.0.0")
 	promf.StringVar(&opt.promPath, "path", "/metrics", "Prometheus exporter port. defaults to /metric")
 
-	loglevel := logrus.DebugLevel
 	logrus.SetLevel(loglevel)
 
 	prom := false
@@ -126,7 +126,7 @@ func startUI(ctx context.Context, cancel context.CancelFunc) {
 			//pause/unpause
 		} else if k.Key == 80 || k.Key == 112 {
 			paused = !paused
-		} else if k.Key == keyboard.KeyEsc || k.Key == 68 || k.Key == 72 {
+		} else if k.Key == keyboard.KeyEsc || k.Key == 68 || k.Key == 72 || k.Key == 104 || k.Key == 96 {
 			showScreen("home")
 		} else if k.Key == 49 {
 			showScreen("cpu")
@@ -214,7 +214,7 @@ func showScreen(name string) {
 
 func updateScreens() error {
 	for _, v := range screens {
-		err := v.update(opt, ps, paused)
+		err := v.update(opt, ps, paused, t)
 		if err != nil {
 			return err
 		}
