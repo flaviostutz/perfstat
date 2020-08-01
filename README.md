@@ -14,6 +14,17 @@ After hundred of hours looking for metrics on CLI and Prometheus/Grafana tools, 
 
 **If you are a developer** too, help system admins find problems more quickly by implementing some of the [Issues](https://github.com/flaviostutz/perfstat/issues) so they can keep your software up! If in doubt, ask for a task in "Issues" and we'd be glad to answer.
 
+## Usage
+
+Perfstat has various interfaces:
+
+* **CLI**: ```perfstat``` - for local diagnostics
+* **Prometheus Exporter**: ```perfstat prometheus``` - for remote monitoring
+* **Golang lib**: ```go get github.com/flaviostutz/perfstat``` - for using this in something greater
+
+
+### CLI
+
 * CPU related issues
 
 <img src="./res/demo1.gif" />
@@ -33,25 +44,6 @@ After hundred of hours looking for metrics on CLI and Prometheus/Grafana tools, 
 
 <img src="./res/demo4.gif" />
 
-
-Perfstat has various interfaces:
-
-* **CLI**: ```perfstat``` - for local diagnostics
-* **Prometheus Exporter**: ```perfstat --prom-enable``` - for remote monitoring
-* **Golang lib**: ```go get github.com/flaviostutz/perfstat``` - for using this in something greater
-
-## Usage
-
-### CLI
-
-```sh
-perfstat
-```
-
-Output
-
-```sh
-```
 
 ### Prometheus Exporter
 
