@@ -233,11 +233,10 @@ func (h *detail) update(opt Option, ps *perfstat.Perfstat, paused bool, term *te
 
 	//DANGER GRAPH
 	od := ps.Score("", "")
-	sparklineDanger2, err := addSparkline(perc(od), h.dangerSeries, "", true)
+	_, err := resolveSparkline(h.sparklineDanger, perc(od), h.dangerSeries, "", true)
 	if err != nil {
 		return err
 	}
-	*h.sparklineDanger = *sparklineDanger2
 
 	//HEADER
 	scc := ps.Score("", fmt.Sprintf("%s.*", h.group))
@@ -399,7 +398,7 @@ func detectionTxt(dr []detectors.DetectionResult) string {
 	r := " "
 	related := make(map[string]string, 0)
 	for _, d := range dr {
-		if r == "" {
+		if r == " " {
 			r = renderDR(d)
 		} else {
 			r = fmt.Sprintf("%s\n%s", r, renderDR(d))
@@ -426,21 +425,18 @@ func updateSparkSeriesTimeLoad(timeLoadTs *signalutils.Timeseries, sts *signalut
 		up1 = 1 - up1
 	}
 	up := perc(up1)
-	sparkline22, _ := addSparkline(up, sts, fmt.Sprintf("%s %d%%", label, up), true)
-	*sl = *sparkline22
+	_, _ = resolveSparkline(sl, up, sts, fmt.Sprintf("%s %d%%", label, up), true)
 }
 
 func updateSparkSeriesAbsoluteMax(value float64, unit string, sts *signalutils.Timeseries, label string, sl *sparkline.SparkLine, maxValue float64) {
 	if maxValue != -1 {
 		up := perc(value / maxValue)
 		valuestr, unit2 := formatValueUnit(value, unit)
-		sparkline22, _ := addSparkline(up, sts, fmt.Sprintf("%s %s%s %d%%", label, valuestr, unit2, up), true)
-		*sl = *sparkline22
+		_, _ = resolveSparkline(sl, up, sts, fmt.Sprintf("%s %s%s %d%%", label, valuestr, unit2, up), true)
 	} else {
 		valuestr, unit2 := formatValueUnit(value, unit)
 		up := int(value * 100)
-		sparkline22, _ := addSparkline(up, sts, fmt.Sprintf("%s %s%s", label, valuestr, unit2), false)
-		*sl = *sparkline22
+		_, _ = resolveSparkline(sl, up, sts, fmt.Sprintf("%s %s%s", label, valuestr, unit2), false)
 	}
 }
 

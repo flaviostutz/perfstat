@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"math"
+	"strings"
 	"time"
 
 	"github.com/flaviostutz/perfstat"
@@ -74,37 +75,37 @@ func newHome(opt Option, ps *perfstat.Perfstat) (*home, error) {
 	ts := signalutils.NewTimeseries(10 * time.Minute)
 	h.dangerSeries = &ts
 
-	h.cpuButton, h.cpuText, err = subsystemBox("CPU", 0, 49, "1", 15, 5, "")
+	h.cpuButton, h.cpuText, err = subsystemBox(nil, nil, "CPU", 0, 49, "1", 15, 5, "")
 	if err != nil {
 		return nil, err
 	}
 
-	h.memButton, h.memText, err = subsystemBox("MEM", 0, 50, "2", 15, 5, "")
+	h.memButton, h.memText, err = subsystemBox(nil, nil, "MEM", 0, 50, "2", 15, 5, "")
 	if err != nil {
 		return nil, err
 	}
 
-	h.diskButton, h.diskText, err = subsystemBox("DISK", 0, 51, "3", 15, 5, "")
+	h.diskButton, h.diskText, err = subsystemBox(nil, nil, "DISK", 0, 51, "3", 15, 5, "")
 	if err != nil {
 		return nil, err
 	}
 
-	h.netButton, h.netText, err = subsystemBox("NET", 0, 52, "4", 15, 5, "")
+	h.netButton, h.netText, err = subsystemBox(nil, nil, "NET", 0, 52, "4", 15, 5, "")
 	if err != nil {
 		return nil, err
 	}
 
-	h.diskButtonr, h.diskTextr, err = subsystemBox("DISK", 0, 51, "3", 15, 3, "")
+	h.diskButtonr, h.diskTextr, err = subsystemBox(nil, nil, "DISK", 0, 51, "3", 15, 3, "")
 	if err != nil {
 		return nil, err
 	}
 
-	h.memButtonr, h.memTextr, err = subsystemBox("MEM", 0, 50, "2", 15, 3, "")
+	h.memButtonr, h.memTextr, err = subsystemBox(nil, nil, "MEM", 0, 50, "2", 15, 3, "")
 	if err != nil {
 		return nil, err
 	}
 
-	h.netButtonr, h.netTextr, err = subsystemBox("NET", 0, 52, "4", 15, 3, "")
+	h.netButtonr, h.netTextr, err = subsystemBox(nil, nil, "NET", 0, 52, "4", 15, 3, "")
 	if err != nil {
 		return nil, err
 	}
@@ -298,78 +299,70 @@ func (h *home) update(opt Option, ps *perfstat.Perfstat, paused bool, term *term
 
 	//DANGER LEVEL
 	od := ps.Score("", "")
-	sparklineDanger2, err := addSparkline(perc(od), h.dangerSeries, "", true)
+	_, err := resolveSparkline(h.sparklineDanger, perc(od), h.dangerSeries, "", true)
 	if err != nil {
 		return err
 	}
 	danger := dangerLevel(ps)
 	h.dangerText.Write(fmt.Sprintf("Danger: %d", danger), text.WriteReplace())
-	*h.sparklineDanger = *sparklineDanger2
 
 	//BOTTLENECK
 	scc := ps.Score("bottleneck", "cpu.*")
 	drc := ps.TopCriticity(0.01, "bottleneck", "cpu.*", false)
-	cpuButton2, cpuText2, err := subsystemBox("CPU", int(math.Round(scc*100.0)), 49, "1", bw, bh, renderDetectionResults(drc))
+	cpuButton2, _, err := subsystemBox(h.cpuButton, h.cpuText, "CPU", int(math.Round(scc*100.0)), 49, "1", bw, bh, renderDetectionResults(drc))
 	if err != nil {
 		return err
 	}
 	*h.cpuButton = *cpuButton2
-	*h.cpuText = *cpuText2
 
 	scm := ps.Score("bottleneck", "mem.*")
 	drm := ps.TopCriticity(0.01, "bottleneck", "mem.*", false)
-	memButton2, memText2, err := subsystemBox("MEM", int(math.Round(scm*100.0)), 50, "2", bw, bh, renderDetectionResults(drm))
+	memButton2, _, err := subsystemBox(h.cpuButton, h.cpuText, "MEM", int(math.Round(scm*100.0)), 50, "2", bw, bh, renderDetectionResults(drm))
 	if err != nil {
 		return err
 	}
 	*h.memButton = *memButton2
-	*h.memText = *memText2
 
 	scd := ps.Score("bottleneck", "disk.*")
 	drd := ps.TopCriticity(0.01, "bottleneck", "disk.*", false)
-	diskButton2, diskText2, err := subsystemBox("DISK", int(math.Round(scd*100.0)), 51, "3", bw, bh, renderDetectionResults(drd))
+	diskButton2, _, err := subsystemBox(h.cpuButton, h.cpuText, "DISK", int(math.Round(scd*100.0)), 51, "3", bw, bh, renderDetectionResults(drd))
 	if err != nil {
 		return err
 	}
 	*h.diskButton = *diskButton2
-	*h.diskText = *diskText2
 
 	scn := ps.Score("bottleneck", "net.*")
 	drn := ps.TopCriticity(0.01, "bottleneck", "net.*", false)
-	netButton2, netText2, err := subsystemBox("NET", int(math.Round(scn*100.0)), 52, "4", bw, bh, renderDetectionResults(drn))
+	netButton2, _, err := subsystemBox(h.netButton, h.netText, "NET", int(math.Round(scn*100.0)), 52, "4", bw, bh, renderDetectionResults(drn))
 	if err != nil {
 		return err
 	}
 	*h.netButton = *netButton2
-	*h.netText = *netText2
 
 	//RISKS
 	scd = ps.Score("risk", "disk.*")
 	drd = ps.TopCriticity(0.01, "risk", "disk.*", false)
-	diskButton2r, diskText2r, err := subsystemBox("DISK", int(math.Round(scd*100.0)), 51, "3", bw, bh-2, renderDetectionResults(drd))
+	diskButton2r, _, err := subsystemBox(h.diskButtonr, h.diskTextr, "DISK", int(math.Round(scd*100.0)), 51, "3", bw, bh-2, renderDetectionResults(drd))
 	if err != nil {
 		return err
 	}
 	*h.diskButtonr = *diskButton2r
-	*h.diskTextr = *diskText2r
 
 	scm = ps.Score("risk", "mem.*")
 	drm = ps.TopCriticity(0.01, "risk", "mem.*", false)
-	memButton2r, memText2r, err := subsystemBox("MEM", int(math.Round(scm*100.0)), 52, "4", bw, bh-2, renderDetectionResults(drm))
+	memButton2r, _, err := subsystemBox(h.memButtonr, h.memTextr, "MEM", int(math.Round(scm*100.0)), 52, "4", bw, bh-2, renderDetectionResults(drm))
 	if err != nil {
 		return err
 	}
 	*h.memButtonr = *memButton2r
-	*h.memTextr = *memText2r
 
 	scn = ps.Score("risk", "net.*")
 	drn = ps.TopCriticity(0.01, "risk", "net.*", false)
-	netButton2r, netText2r, err := subsystemBox("NET", int(math.Round(scn*100.0)), 52, "4", bw, bh-2, renderDetectionResults(drn))
+	netButton2r, _, err := subsystemBox(h.netButtonr, h.netTextr, "NET", int(math.Round(scn*100.0)), 52, "4", bw, bh-2, renderDetectionResults(drn))
 	if err != nil {
 		return err
 	}
 	*h.netButtonr = *netButton2r
-	*h.netTextr = *netText2r
 
 	//RELATED
 	t := table.NewWriter()
@@ -402,7 +395,7 @@ func (h *home) update(opt Option, ps *perfstat.Perfstat, paused bool, term *term
 func (h *home) onEvent(evt *terminalapi.Keyboard) {
 }
 
-func subsystemBox(blabel string, bvalue int, bKey keyboard.Key, bKeyText string, bwidth int, bheight int, status string) (*button.Button, *text.Text, error) {
+func subsystemBox(btn *button.Button, tx *text.Text, blabel string, bvalue int, bKey keyboard.Key, bKeyText string, bwidth int, bheight int, status string) (*button.Button, *text.Text, error) {
 	//button
 	color := cell.ColorRed
 	if bvalue < 80 {
@@ -411,8 +404,13 @@ func subsystemBox(blabel string, bvalue int, bKey keyboard.Key, bKeyText string,
 	if bvalue < 5 {
 		color = cell.ColorGreen
 	}
-	c1, err := button.New(fmt.Sprintf("[%d] %s (%s)", bvalue, blabel, bKeyText),
+
+	var err error
+	label := fmt.Sprintf("[%d] %s (%s)", bvalue, blabel, bKeyText)
+	// if btn == nil {
+	btn, err = button.New(label,
 		func() error {
+			showScreen(strings.ToLower(blabel))
 			return nil
 		},
 		button.GlobalKey(bKey),
@@ -423,15 +421,18 @@ func subsystemBox(blabel string, bvalue int, bKey keyboard.Key, bKeyText string,
 	if err != nil {
 		return nil, nil, err
 	}
+	// }
 
 	//status text
-	c2, err := text.New()
-	if err != nil {
-		return nil, nil, err
+	if tx == nil {
+		tx, err = text.New()
+		if err != nil {
+			return nil, nil, err
+		}
 	}
-	c2.Write(status, text.WriteReplace())
+	tx.Write(status, text.WriteReplace())
 
-	return c1, c2, nil
+	return btn, tx, nil
 }
 
 func (h *home) rootContainer() container.Option {

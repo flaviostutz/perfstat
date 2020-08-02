@@ -7,7 +7,7 @@ require (
 	github.com/asaskevich/govalidator v0.0.0-20200428143746-21a406dcc535 // indirect
 	github.com/cjbassi/gotop v0.0.0-20200302192305-61ed1ad0c36e // indirect
 	github.com/coryb/sorty v0.0.0-20150713032104-4c034679911c
-	github.com/flaviostutz/signalutils v1.12.1
+	github.com/flaviostutz/signalutils v1.12.2
 	github.com/fsnotify/fsnotify v1.4.9 // indirect
 	github.com/gizak/termui/v3 v3.0.0
 	github.com/go-ole/go-ole v1.2.4 // indirect
@@ -30,3 +30,6 @@ require (
 	golang.org/x/sys v0.0.0-20200728102440-3e129f6d46b1 // indirect
 	google.golang.org/protobuf v1.25.0 // indirect
 )
+
+// replace github.com/mum4k/termdash => github.com/flaviostutz/termdash v1.2.0
+

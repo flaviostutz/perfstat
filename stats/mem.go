@@ -33,6 +33,7 @@ func NewMemStats(ctx context.Context, timeseriesMaxSpan time.Duration, sampleFre
 	mt.SwapOut = signalutils.NewTimeseriesCounterRate(timeseriesMaxSpan)
 	mt.SwapTotal = 0.0
 	mt.SwapUsed = signalutils.NewTimeseries(timeseriesMaxSpan)
+	mt.SwapFree = signalutils.NewTimeseries(timeseriesMaxSpan)
 
 	signalutils.StartWorker(ctx, "mem", mt.memStep, sampleFreq/2, sampleFreq, true)
 	logrus.Debugf("Mem Stats: running")

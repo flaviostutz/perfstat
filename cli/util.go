@@ -124,7 +124,7 @@ func dangerLevel(ps *perfstat.Perfstat) int {
 	return int(math.Round((os / 7.0) * 100))
 }
 
-func addSparkline(value int, ts *signalutils.Timeseries, label string, colorize bool) (*sparkline.SparkLine, error) {
+func resolveSparkline(sl *sparkline.SparkLine, value int, ts *signalutils.Timeseries, label string, colorize bool) (*sparkline.SparkLine, error) {
 	if value != -1 {
 		ts.Add(float64(value))
 	}
@@ -137,14 +137,21 @@ func addSparkline(value int, ts *signalutils.Timeseries, label string, colorize 
 			dangerColor = cell.ColorGreen
 		}
 	}
-	sparklineDanger2, err := sparkline.New(
-		sparkline.Color(dangerColor),
-		sparkline.Label(label),
-	)
-	for _, dv := range ts.Values {
-		sparklineDanger2.Add([]int{int(dv.Value)})
+
+	var err error
+	if sl != nil {
+		sl, err = sparkline.New(
+			sparkline.Color(dangerColor),
+			sparkline.Label(label),
+		)
+		if err != nil {
+			return nil, err
+		}
 	}
-	return sparklineDanger2, err
+	for _, dv := range ts.Values {
+		sl.Add([]int{int(dv.Value)}, sparkline.Color(dangerColor), sparkline.Label(label))
+	}
+	return sl, err
 }
 
 func groupFromID(id string) string {
