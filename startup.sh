@@ -31,13 +31,7 @@ if [ "$RUN_TESTS" == "true" ]; then
     go test -v -run TestRollingDetections
 
 else
-
-    echo "Starting Perfstat..."
-    # perfstat
-    # top
-
-    go get github.com/cjbassi/gotop
-    echo "GOTOP"
-    gotop
+    echo "Starting Perfstat Prometheus Exporter..."
+    perfstat prometheus
 
 fi

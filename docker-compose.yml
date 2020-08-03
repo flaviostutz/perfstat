@@ -12,5 +12,7 @@ services:
     privileged: true
     stdin_open: true
     tty: true
+    ports: 
+      - 8880:8880
     # command: sleep 99999
 
