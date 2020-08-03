@@ -48,11 +48,11 @@ func main() {
 	screens = make(map[string]screen)
 
 	flag.Float64Var(&opt.freq, "freq", 1.0, "Analysis frequency. Changes data capture and display refresh frequency. Higher consumes more CPU. Defaults to 1 Hz")
-	flag.Float64Var(&opt.sensibility, "sensibility", 6.0, "Lower values (ex.: 0.2) means larger timespan in analysis, leading to more accurate results but slower responses. Higher values (ex.: 5) means short time analysis but may lead to false positives. Defaults to 1.0 which means detecting a continuous 100% CPU in 30s")
+	flag.Float64Var(&opt.sensibility, "sensibility", 1.0, "Lower values (ex.: 0.2) means larger timespan in analysis, leading to more accurate results but slower responses. Higher values (ex.: 5) means short time analysis but may lead to false positives. Defaults to 1.0 which means detecting a continuous 100% CPU in 30s")
 
 	promf := flag.NewFlagSet("prometheus", flag.ExitOnError)
 	promf.Float64Var(&opt.freq, "freq", 1.0, "Analysis frequency. Changes data capture and display refresh frequency. Higher consumes more CPU. Defaults to 1 Hz")
-	promf.Float64Var(&opt.sensibility, "sensibility", 6.0, "Lower values (ex.: 0.2) means larger timespan in analysis, leading to more accurate results but slower responses. Higher values (ex.: 5) means short time analysis but may lead to false positives. Defaults to 1.0 which means detecting a continuous 100% CPU in 30s")
+	promf.Float64Var(&opt.sensibility, "sensibility", 1.0, "Lower values (ex.: 0.2) means larger timespan in analysis, leading to more accurate results but slower responses. Higher values (ex.: 5) means short time analysis but may lead to false positives. Defaults to 1.0 which means detecting a continuous 100% CPU in 30s")
 	promf.UintVar(&opt.promBindPort, "port", 8880, "Prometheus exporter port. defaults to 8880")
 	promf.StringVar(&opt.promBindHost, "host", "0.0.0.0", "Prometheus exporter bind host. defaults to 0.0.0.0")
 	promf.StringVar(&opt.promPath, "path", "/metrics", "Prometheus exporter port. defaults to /metric")
@@ -126,15 +126,15 @@ func startUI(ctx context.Context, cancel context.CancelFunc) {
 			//pause/unpause
 		} else if k.Key == 80 || k.Key == 112 {
 			paused = !paused
-		} else if k.Key == keyboard.KeyEsc || k.Key == 68 || k.Key == 72 || k.Key == 104 || k.Key == 96 {
+		} else if k.Key == keyboard.KeyEsc || k.Key == 68 || k.Key == 72 || k.Key == 104 || k.Key == 96 || k.Key == 49 {
 			showScreen("home")
-		} else if k.Key == 49 {
-			showScreen("cpu")
 		} else if k.Key == 50 {
-			showScreen("mem")
+			showScreen("cpu")
 		} else if k.Key == 51 {
-			showScreen("disk")
+			showScreen("mem")
 		} else if k.Key == 52 {
+			showScreen("disk")
+		} else if k.Key == 53 {
 			showScreen("net")
 		}
 		updateScreens()

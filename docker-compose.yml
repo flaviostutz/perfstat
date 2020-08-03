@@ -8,7 +8,9 @@ services:
       - RUN_TESTS=false
     volumes:
       - ./:/app
+      - ./dist:/dist
     privileged: true
     stdin_open: true
     tty: true
+    command: sleep 99999
 

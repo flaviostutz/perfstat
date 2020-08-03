@@ -15,11 +15,9 @@ ADD / /app/
 
 WORKDIR /app/cli
 
-RUN go build -o /bin/perfstat
-
 # RUN echo "TEST stats" && cd /app/stats && go test -v
 # RUN echo "TEST detectors" && cd /app/detectors && go test -v
 # ./... -run ^TestProcessStatsBasic$
 
-CMD [ "/app/startup.sh" ]
+CMD [ "/app/dist.sh" ]
 

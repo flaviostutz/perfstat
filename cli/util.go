@@ -39,9 +39,9 @@ func renderDetectionResults(drs []detectors.DetectionResult) string {
 	// t.Style().Options.DrawBorder = false
 	// tr := t.Render()
 
-	res := ""
+	res := " "
 	for _, dr := range drs {
-		if res == "" {
+		if res == " " {
 			res = renderDR(dr)
 		} else {
 			res = fmt.Sprintf("%s\n%s", res, renderDR(dr))
@@ -139,7 +139,7 @@ func resolveSparkline(sl *sparkline.SparkLine, value int, ts *signalutils.Timese
 	}
 
 	var err error
-	if sl != nil {
+	if sl == nil {
 		sl, err = sparkline.New(
 			sparkline.Color(dangerColor),
 			sparkline.Label(label),

@@ -12,7 +12,7 @@ func init() {
 
 		r := DetectionResult{
 			Typ:  "risk",
-			ID:   "fd-low",
+			ID:   "mem-leak",
 			When: time.Now(),
 		}
 

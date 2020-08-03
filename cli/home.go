@@ -11,7 +11,6 @@ import (
 	"github.com/jedib0t/go-pretty/table"
 	"github.com/mum4k/termdash/cell"
 	"github.com/mum4k/termdash/container"
-	"github.com/mum4k/termdash/keyboard"
 	"github.com/mum4k/termdash/linestyle"
 	"github.com/mum4k/termdash/terminal/termbox"
 	"github.com/mum4k/termdash/terminal/terminalapi"
@@ -75,37 +74,37 @@ func newHome(opt Option, ps *perfstat.Perfstat) (*home, error) {
 	ts := signalutils.NewTimeseries(10 * time.Minute)
 	h.dangerSeries = &ts
 
-	h.cpuButton, h.cpuText, err = subsystemBox(nil, nil, "CPU", 0, 49, "1", 15, 5, "")
+	h.cpuButton, h.cpuText, err = subsystemBox(nil, nil, "CPU", 0, "1", 15, 5, "")
 	if err != nil {
 		return nil, err
 	}
 
-	h.memButton, h.memText, err = subsystemBox(nil, nil, "MEM", 0, 50, "2", 15, 5, "")
+	h.memButton, h.memText, err = subsystemBox(nil, nil, "MEM", 0, "2", 15, 5, "")
 	if err != nil {
 		return nil, err
 	}
 
-	h.diskButton, h.diskText, err = subsystemBox(nil, nil, "DISK", 0, 51, "3", 15, 5, "")
+	h.diskButton, h.diskText, err = subsystemBox(nil, nil, "DISK", 0, "3", 15, 5, "")
 	if err != nil {
 		return nil, err
 	}
 
-	h.netButton, h.netText, err = subsystemBox(nil, nil, "NET", 0, 52, "4", 15, 5, "")
+	h.netButton, h.netText, err = subsystemBox(nil, nil, "NET", 0, "4", 15, 5, "")
 	if err != nil {
 		return nil, err
 	}
 
-	h.diskButtonr, h.diskTextr, err = subsystemBox(nil, nil, "DISK", 0, 51, "3", 15, 3, "")
+	h.diskButtonr, h.diskTextr, err = subsystemBox(nil, nil, "DISK", 0, "3", 15, 3, "")
 	if err != nil {
 		return nil, err
 	}
 
-	h.memButtonr, h.memTextr, err = subsystemBox(nil, nil, "MEM", 0, 50, "2", 15, 3, "")
+	h.memButtonr, h.memTextr, err = subsystemBox(nil, nil, "MEM", 0, "2", 15, 3, "")
 	if err != nil {
 		return nil, err
 	}
 
-	h.netButtonr, h.netTextr, err = subsystemBox(nil, nil, "NET", 0, 52, "4", 15, 3, "")
+	h.netButtonr, h.netTextr, err = subsystemBox(nil, nil, "NET", 0, "4", 15, 3, "")
 	if err != nil {
 		return nil, err
 	}
@@ -309,7 +308,7 @@ func (h *home) update(opt Option, ps *perfstat.Perfstat, paused bool, term *term
 	//BOTTLENECK
 	scc := ps.Score("bottleneck", "cpu.*")
 	drc := ps.TopCriticity(0.01, "bottleneck", "cpu.*", false)
-	cpuButton2, _, err := subsystemBox(h.cpuButton, h.cpuText, "CPU", int(math.Round(scc*100.0)), 49, "1", bw, bh, renderDetectionResults(drc))
+	cpuButton2, _, err := subsystemBox(h.cpuButton, h.cpuText, "CPU", int(math.Round(scc*100.0)), "2", bw, bh, renderDetectionResults(drc))
 	if err != nil {
 		return err
 	}
@@ -317,7 +316,7 @@ func (h *home) update(opt Option, ps *perfstat.Perfstat, paused bool, term *term
 
 	scm := ps.Score("bottleneck", "mem.*")
 	drm := ps.TopCriticity(0.01, "bottleneck", "mem.*", false)
-	memButton2, _, err := subsystemBox(h.cpuButton, h.cpuText, "MEM", int(math.Round(scm*100.0)), 50, "2", bw, bh, renderDetectionResults(drm))
+	memButton2, _, err := subsystemBox(h.cpuButton, h.cpuText, "MEM", int(math.Round(scm*100.0)), "3", bw, bh, renderDetectionResults(drm))
 	if err != nil {
 		return err
 	}
@@ -325,7 +324,7 @@ func (h *home) update(opt Option, ps *perfstat.Perfstat, paused bool, term *term
 
 	scd := ps.Score("bottleneck", "disk.*")
 	drd := ps.TopCriticity(0.01, "bottleneck", "disk.*", false)
-	diskButton2, _, err := subsystemBox(h.cpuButton, h.cpuText, "DISK", int(math.Round(scd*100.0)), 51, "3", bw, bh, renderDetectionResults(drd))
+	diskButton2, _, err := subsystemBox(h.cpuButton, h.cpuText, "DISK", int(math.Round(scd*100.0)), "4", bw, bh, renderDetectionResults(drd))
 	if err != nil {
 		return err
 	}
@@ -333,7 +332,7 @@ func (h *home) update(opt Option, ps *perfstat.Perfstat, paused bool, term *term
 
 	scn := ps.Score("bottleneck", "net.*")
 	drn := ps.TopCriticity(0.01, "bottleneck", "net.*", false)
-	netButton2, _, err := subsystemBox(h.netButton, h.netText, "NET", int(math.Round(scn*100.0)), 52, "4", bw, bh, renderDetectionResults(drn))
+	netButton2, _, err := subsystemBox(h.netButton, h.netText, "NET", int(math.Round(scn*100.0)), "5", bw, bh, renderDetectionResults(drn))
 	if err != nil {
 		return err
 	}
@@ -342,7 +341,7 @@ func (h *home) update(opt Option, ps *perfstat.Perfstat, paused bool, term *term
 	//RISKS
 	scd = ps.Score("risk", "disk.*")
 	drd = ps.TopCriticity(0.01, "risk", "disk.*", false)
-	diskButton2r, _, err := subsystemBox(h.diskButtonr, h.diskTextr, "DISK", int(math.Round(scd*100.0)), 51, "3", bw, bh-2, renderDetectionResults(drd))
+	diskButton2r, _, err := subsystemBox(h.diskButtonr, h.diskTextr, "DISK", int(math.Round(scd*100.0)), "4", bw, bh-2, renderDetectionResults(drd))
 	if err != nil {
 		return err
 	}
@@ -350,7 +349,7 @@ func (h *home) update(opt Option, ps *perfstat.Perfstat, paused bool, term *term
 
 	scm = ps.Score("risk", "mem.*")
 	drm = ps.TopCriticity(0.01, "risk", "mem.*", false)
-	memButton2r, _, err := subsystemBox(h.memButtonr, h.memTextr, "MEM", int(math.Round(scm*100.0)), 52, "4", bw, bh-2, renderDetectionResults(drm))
+	memButton2r, _, err := subsystemBox(h.memButtonr, h.memTextr, "MEM", int(math.Round(scm*100.0)), "3", bw, bh-2, renderDetectionResults(drm))
 	if err != nil {
 		return err
 	}
@@ -358,7 +357,7 @@ func (h *home) update(opt Option, ps *perfstat.Perfstat, paused bool, term *term
 
 	scn = ps.Score("risk", "net.*")
 	drn = ps.TopCriticity(0.01, "risk", "net.*", false)
-	netButton2r, _, err := subsystemBox(h.netButtonr, h.netTextr, "NET", int(math.Round(scn*100.0)), 52, "4", bw, bh-2, renderDetectionResults(drn))
+	netButton2r, _, err := subsystemBox(h.netButtonr, h.netTextr, "NET", int(math.Round(scn*100.0)), "5", bw, bh-2, renderDetectionResults(drn))
 	if err != nil {
 		return err
 	}
@@ -376,7 +375,7 @@ func (h *home) update(opt Option, ps *perfstat.Perfstat, paused bool, term *term
 				pn, pv, unit := formatResPropertyValue(r00)
 				related[k] = "OK"
 				t.AppendRows([]table.Row{
-					{fmt.Sprintf("%.0f", math.Round(d0.Score*100)), r00.Name, pn, fmt.Sprintf("%s%s", pv, unit)},
+					{fmt.Sprintf("%.0f", math.Round(d0.Score*100)), r00.Name, pn, fmt.Sprintf("%s%s", pv, unit), d0.ID, d0.Typ},
 				})
 			}
 		}
@@ -395,7 +394,7 @@ func (h *home) update(opt Option, ps *perfstat.Perfstat, paused bool, term *term
 func (h *home) onEvent(evt *terminalapi.Keyboard) {
 }
 
-func subsystemBox(btn *button.Button, tx *text.Text, blabel string, bvalue int, bKey keyboard.Key, bKeyText string, bwidth int, bheight int, status string) (*button.Button, *text.Text, error) {
+func subsystemBox(btn *button.Button, tx *text.Text, blabel string, bvalue int, bKeyText string, bwidth int, bheight int, status string) (*button.Button, *text.Text, error) {
 	//button
 	color := cell.ColorRed
 	if bvalue < 80 {
@@ -413,7 +412,6 @@ func subsystemBox(btn *button.Button, tx *text.Text, blabel string, bvalue int, 
 			showScreen(strings.ToLower(blabel))
 			return nil
 		},
-		button.GlobalKey(bKey),
 		button.Width(bwidth),
 		button.Height(bheight),
 		button.FillColor(color),
