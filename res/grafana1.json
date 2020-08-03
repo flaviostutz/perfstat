@@ -58,7 +58,7 @@
   "gnetId": null,
   "graphTooltip": 0,
   "id": null,
-  "iteration": 1596497349131,
+  "iteration": 1596497349137,
   "links": [],
   "panels": [
     {
@@ -468,7 +468,7 @@
       "datasource": "${DS_PROMETHEUS}",
       "fill": 1,
       "gridPos": {
-        "h": 6,
+        "h": 7,
         "w": 11,
         "x": 0,
         "y": 6
@@ -555,7 +555,7 @@
       "datasource": "${DS_PROMETHEUS}",
       "fill": 1,
       "gridPos": {
-        "h": 6,
+        "h": 7,
         "w": 12,
         "x": 11,
         "y": 6
@@ -590,7 +590,7 @@
           "format": "time_series",
           "instant": false,
           "intervalFactor": 1,
-          "legendFormat": "{{host}} {{id}} {{resource_name}} {{related_resource_name}}",
+          "legendFormat": "{{host}} {{id}} {{resource_name}} {{resource_property_name}}",
           "refId": "A"
         }
       ],
@@ -695,5 +695,5 @@
   "timezone": "",
   "title": "Perfstat Issues",
   "uid": "GjnR0CVMk",
-  "version": 32
+  "version": 35
 }
