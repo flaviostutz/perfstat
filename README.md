@@ -59,6 +59,8 @@ services:
     privileged: true
     ports:
       - 8880:8880
+    volumes:
+      - /etc/hostname:/etc/hostname
 ```
 
   * run ```docker-compose up -d```
@@ -89,13 +91,13 @@ services:
   perfstat:
     image: flaviostutz/perfstat
     privileged: true
+    volumes:
+      - /etc/hostname:/etc/hostname
     deploy:
       mode: global
 ```
 
   * Deploy service in Swarm
-
-  * See more at 
 
 #### Prometheus Metrics
 
