@@ -31,6 +31,7 @@ if [ "$RUN_TESTS" == "true" ]; then
     go test -v -run TestRollingDetections
 
 else
+
     echo "Starting Perfstat Prometheus Exporter..."
     perfstat prometheus
 

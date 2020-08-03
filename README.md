@@ -47,7 +47,23 @@ Perfstat has various interfaces:
 
 ### Prometheus Exporter
 
-* Start exporter
+* Start exporter using Docker container
+
+  * create docker-compose.yml
+
+```yml
+version: '3.5'
+services:
+  perfstat:
+    image: flaviostutz/perfstat
+    privileged: true
+    ports:
+      - 8880:8880
+```
+
+  * run ```docker-compose up -d```
+
+* Start exporter directly on host
 
 ```sh
 perfstat prometheus
@@ -60,6 +76,26 @@ curl localhost:8880/metrics
 ```
 
 * Add this exporter to Prometheus configuration
+
+#### Swarm
+
+* In order to run perfstat automatically on all hosts of a Swarm Cluster (even if the host is added after running this)
+
+  * Create docker-compose.yml
+
+```yml
+version: '3.5'
+services:
+  perfstat:
+    image: flaviostutz/perfstat
+    privileged: true
+    deploy:
+      mode: global
+```
+
+  * Deploy service in Swarm
+
+  * See more at 
 
 #### Prometheus Metrics
 

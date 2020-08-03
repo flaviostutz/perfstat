@@ -9,9 +9,13 @@ services:
     volumes:
       - ./:/app
       - ./dist:/dist
+      # - /proc:/host/proc:ro
+      # - /sys:/host/sys:ro
+      # - /:/rootfs:ro
+      # - /etc/hostname:/etc/nodename  
     privileged: true
-    stdin_open: true
-    tty: true
+    # stdin_open: true
+    # tty: true
     ports: 
       - 8880:8880
     # command: sleep 99999
