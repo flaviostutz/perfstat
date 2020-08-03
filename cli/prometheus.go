@@ -12,14 +12,19 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/shirou/gopsutil/host"
 	"github.com/sirupsen/logrus"
 )
 
 func startPrometheus(ctx context.Context, opt Option, ps *perfstat.Perfstat) {
+
+	info, _ := host.Info()
+
 	dangerGauge := promauto.NewGaugeVec(prometheus.GaugeOpts{
 		Name: "danger_score",
 		Help: "Danger level by type and subsystem",
 	}, []string{
+		"host",
 		"type",
 		"group",
 	})
@@ -28,6 +33,7 @@ func startPrometheus(ctx context.Context, opt Option, ps *perfstat.Perfstat) {
 		Name: "issue_score",
 		Help: "Issue score details",
 	}, []string{
+		"host",
 		"type",
 		"group",
 		"id",
@@ -40,6 +46,7 @@ func startPrometheus(ctx context.Context, opt Option, ps *perfstat.Perfstat) {
 		Name: "issue_resource_value",
 		Help: "Issue resource value",
 	}, []string{
+		"host",
 		"type",
 		"group",
 		"id",
@@ -69,14 +76,14 @@ func startPrometheus(ctx context.Context, opt Option, ps *perfstat.Perfstat) {
 		logrus.Debugf("Generating Prometheus metrics")
 
 		//DANGER LEVELS
-		genMetrics(dangerGauge, "", "")
-		genMetrics(dangerGauge, "bottleneck", "cpu")
-		genMetrics(dangerGauge, "bottleneck", "mem")
-		genMetrics(dangerGauge, "bottleneck", "disk")
-		genMetrics(dangerGauge, "bottleneck", "net")
-		genMetrics(dangerGauge, "risk", "mem")
-		genMetrics(dangerGauge, "risk", "disk")
-		genMetrics(dangerGauge, "risk", "net")
+		genMetrics(dangerGauge, info, "", "")
+		genMetrics(dangerGauge, info, "bottleneck", "cpu")
+		genMetrics(dangerGauge, info, "bottleneck", "mem")
+		genMetrics(dangerGauge, info, "bottleneck", "disk")
+		genMetrics(dangerGauge, info, "bottleneck", "net")
+		genMetrics(dangerGauge, info, "risk", "mem")
+		genMetrics(dangerGauge, info, "risk", "disk")
+		genMetrics(dangerGauge, info, "risk", "net")
 
 		//DETECTIONS
 		dr := ps.TopCriticity(-1, "", "", false)
@@ -85,8 +92,8 @@ func startPrometheus(ctx context.Context, opt Option, ps *perfstat.Perfstat) {
 			if len(d.Related) > 0 {
 				relName = d.Related[0].Name
 			}
-			issuesGauge.WithLabelValues(d.Typ, groupFromID(d.ID), fmt.Sprintf("%s", d.ID), d.Res.Name, d.Res.PropertyName, relName).Set(d.Score)
-			issueResourceGauge.WithLabelValues(d.Typ, groupFromID(d.ID), fmt.Sprintf("%s", d.ID), d.Res.Name, d.Res.PropertyName).Set(d.Res.PropertyValue)
+			issuesGauge.WithLabelValues(info.Hostname, d.Typ, groupFromID(d.ID), fmt.Sprintf("%s", d.ID), d.Res.Name, d.Res.PropertyName, relName).Set(d.Score)
+			issueResourceGauge.WithLabelValues(info.Hostname, d.Typ, groupFromID(d.ID), fmt.Sprintf("%s", d.ID), d.Res.Name, d.Res.PropertyName).Set(d.Res.PropertyValue)
 		}
 
 		return nil
@@ -98,6 +105,6 @@ func startPrometheus(ctx context.Context, opt Option, ps *perfstat.Perfstat) {
 	}
 }
 
-func genMetrics(g *prometheus.GaugeVec, typ string, group string) {
-	g.WithLabelValues(typ, group).Set(ps.Score(typ, fmt.Sprintf("%s.*", group)))
+func genMetrics(g *prometheus.GaugeVec, info *host.InfoStat, typ string, group string) {
+	g.WithLabelValues(info.Hostname, typ, group).Set(ps.Score(typ, fmt.Sprintf("%s.*", group)))
 }
