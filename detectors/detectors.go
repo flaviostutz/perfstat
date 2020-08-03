@@ -135,7 +135,7 @@ func SetLogLevel(level logrus.Level) {
 func Start(ctx context.Context, opt Options) {
 	if !Started {
 		ActiveStats = &StatsType{}
-		ActiveStats.CPUStats = stats.NewCPUStats(ctx, opt.DefaultTimeseriesSize, 1)
+		ActiveStats.CPUStats = stats.NewCPUStats(ctx, opt.DefaultTimeseriesSize, opt.DefaultSampleFreq)
 		ActiveStats.ProcessStats = stats.NewProcessStats(ctx, opt.DefaultTimeseriesSize, opt.IORateLoadDuration, opt.CPULoadAvgDuration, opt.MemAvgDuration, opt.DefaultSampleFreq)
 		ActiveStats.MemStats = stats.NewMemStats(ctx, opt.DefaultTimeseriesSize, opt.DefaultSampleFreq)
 		ActiveStats.DiskStats = stats.NewDiskStats(ctx, opt.DefaultTimeseriesSize, opt.IORateLoadDuration, opt.DefaultSampleFreq)

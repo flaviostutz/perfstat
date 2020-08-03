@@ -74,37 +74,37 @@ func newHome(opt Option, ps *perfstat.Perfstat) (*home, error) {
 	ts := signalutils.NewTimeseries(10 * time.Minute)
 	h.dangerSeries = &ts
 
-	h.cpuButton, h.cpuText, err = subsystemBox(nil, nil, "CPU", 0, "1", 15, 5, "")
+	h.cpuButton, h.cpuText, err = subsystemBox(nil, nil, "CPU", 0, "1", 15, 5, " ")
 	if err != nil {
 		return nil, err
 	}
 
-	h.memButton, h.memText, err = subsystemBox(nil, nil, "MEM", 0, "2", 15, 5, "")
+	h.memButton, h.memText, err = subsystemBox(nil, nil, "MEM", 0, "2", 15, 5, " ")
 	if err != nil {
 		return nil, err
 	}
 
-	h.diskButton, h.diskText, err = subsystemBox(nil, nil, "DISK", 0, "3", 15, 5, "")
+	h.diskButton, h.diskText, err = subsystemBox(nil, nil, "DISK", 0, "3", 15, 5, " ")
 	if err != nil {
 		return nil, err
 	}
 
-	h.netButton, h.netText, err = subsystemBox(nil, nil, "NET", 0, "4", 15, 5, "")
+	h.netButton, h.netText, err = subsystemBox(nil, nil, "NET", 0, "4", 15, 5, " ")
 	if err != nil {
 		return nil, err
 	}
 
-	h.diskButtonr, h.diskTextr, err = subsystemBox(nil, nil, "DISK", 0, "3", 15, 3, "")
+	h.diskButtonr, h.diskTextr, err = subsystemBox(nil, nil, "DISK", 0, "3", 15, 3, " ")
 	if err != nil {
 		return nil, err
 	}
 
-	h.memButtonr, h.memTextr, err = subsystemBox(nil, nil, "MEM", 0, "2", 15, 3, "")
+	h.memButtonr, h.memTextr, err = subsystemBox(nil, nil, "MEM", 0, "2", 15, 3, " ")
 	if err != nil {
 		return nil, err
 	}
 
-	h.netButtonr, h.netTextr, err = subsystemBox(nil, nil, "NET", 0, "4", 15, 3, "")
+	h.netButtonr, h.netTextr, err = subsystemBox(nil, nil, "NET", 0, "4", 15, 3, " ")
 	if err != nil {
 		return nil, err
 	}
@@ -281,8 +281,9 @@ func (h *home) update(opt Option, ps *perfstat.Perfstat, paused bool, term *term
 	tw := term.Size().X
 	th := term.Size().Y
 
-	bw := int(math.Max(float64(tw/7), 6.0))
-	bh := int(math.Max(float64(th)/6.0, 3.0))
+	bw := int(math.Min(math.Max(float64(tw/7), 6.0), 18.0))
+	bh := int(math.Min(math.Max(float64(th)/6.0, 1.0), 5.0))
+	bh2 := int(math.Max(float64(bh-2), 1))
 
 	//STATUS
 	if paused {
@@ -308,6 +309,7 @@ func (h *home) update(opt Option, ps *perfstat.Perfstat, paused bool, term *term
 	//BOTTLENECK
 	scc := ps.Score("bottleneck", "cpu.*")
 	drc := ps.TopCriticity(0.01, "bottleneck", "cpu.*", false)
+	// fmt.Printf(">>>>>%s", renderDetectionResults(drc))
 	cpuButton2, _, err := subsystemBox(h.cpuButton, h.cpuText, "CPU", int(math.Round(scc*100.0)), "2", bw, bh, renderDetectionResults(drc))
 	if err != nil {
 		return err
@@ -316,7 +318,7 @@ func (h *home) update(opt Option, ps *perfstat.Perfstat, paused bool, term *term
 
 	scm := ps.Score("bottleneck", "mem.*")
 	drm := ps.TopCriticity(0.01, "bottleneck", "mem.*", false)
-	memButton2, _, err := subsystemBox(h.cpuButton, h.cpuText, "MEM", int(math.Round(scm*100.0)), "3", bw, bh, renderDetectionResults(drm))
+	memButton2, _, err := subsystemBox(h.cpuButton, h.memText, "MEM", int(math.Round(scm*100.0)), "3", bw, bh, renderDetectionResults(drm))
 	if err != nil {
 		return err
 	}
@@ -324,7 +326,7 @@ func (h *home) update(opt Option, ps *perfstat.Perfstat, paused bool, term *term
 
 	scd := ps.Score("bottleneck", "disk.*")
 	drd := ps.TopCriticity(0.01, "bottleneck", "disk.*", false)
-	diskButton2, _, err := subsystemBox(h.cpuButton, h.cpuText, "DISK", int(math.Round(scd*100.0)), "4", bw, bh, renderDetectionResults(drd))
+	diskButton2, _, err := subsystemBox(h.cpuButton, h.diskText, "DISK", int(math.Round(scd*100.0)), "4", bw, bh, renderDetectionResults(drd))
 	if err != nil {
 		return err
 	}
@@ -341,7 +343,7 @@ func (h *home) update(opt Option, ps *perfstat.Perfstat, paused bool, term *term
 	//RISKS
 	scd = ps.Score("risk", "disk.*")
 	drd = ps.TopCriticity(0.01, "risk", "disk.*", false)
-	diskButton2r, _, err := subsystemBox(h.diskButtonr, h.diskTextr, "DISK", int(math.Round(scd*100.0)), "4", bw, bh-2, renderDetectionResults(drd))
+	diskButton2r, _, err := subsystemBox(h.diskButtonr, h.diskTextr, "DISK", int(math.Round(scd*100.0)), "4", bw, bh2, renderDetectionResults(drd))
 	if err != nil {
 		return err
 	}
@@ -349,7 +351,7 @@ func (h *home) update(opt Option, ps *perfstat.Perfstat, paused bool, term *term
 
 	scm = ps.Score("risk", "mem.*")
 	drm = ps.TopCriticity(0.01, "risk", "mem.*", false)
-	memButton2r, _, err := subsystemBox(h.memButtonr, h.memTextr, "MEM", int(math.Round(scm*100.0)), "3", bw, bh-2, renderDetectionResults(drm))
+	memButton2r, _, err := subsystemBox(h.memButtonr, h.memTextr, "MEM", int(math.Round(scm*100.0)), "3", bw, bh2, renderDetectionResults(drm))
 	if err != nil {
 		return err
 	}
@@ -357,7 +359,7 @@ func (h *home) update(opt Option, ps *perfstat.Perfstat, paused bool, term *term
 
 	scn = ps.Score("risk", "net.*")
 	drn = ps.TopCriticity(0.01, "risk", "net.*", false)
-	netButton2r, _, err := subsystemBox(h.netButtonr, h.netTextr, "NET", int(math.Round(scn*100.0)), "5", bw, bh-2, renderDetectionResults(drn))
+	netButton2r, _, err := subsystemBox(h.netButtonr, h.netTextr, "NET", int(math.Round(scn*100.0)), "5", bw, bh2, renderDetectionResults(drn))
 	if err != nil {
 		return err
 	}
@@ -428,7 +430,7 @@ func subsystemBox(btn *button.Button, tx *text.Text, blabel string, bvalue int, 
 			return nil, nil, err
 		}
 	}
-	tx.Write(status, text.WriteReplace())
+	tx.Write(fmt.Sprintf("%s", status), text.WriteReplace())
 
 	return btn, tx, nil
 }

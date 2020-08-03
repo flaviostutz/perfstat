@@ -12,5 +12,5 @@ services:
     privileged: true
     stdin_open: true
     tty: true
-    command: sleep 99999
+    # command: sleep 99999
 

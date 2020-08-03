@@ -54,7 +54,7 @@ func Start(ctx context.Context, opt detectors.Options) *Perfstat {
 
 		p.curResults = result
 		return nil
-	}, 0.5, 1, true)
+	}, opt.DefaultSampleFreq/2, opt.DefaultSampleFreq, true)
 
 	return p
 }
