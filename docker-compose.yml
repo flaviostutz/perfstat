@@ -9,14 +9,32 @@ services:
     volumes:
       - ./:/app
       - ./dist:/dist
-      # - /proc:/host/proc:ro
-      # - /sys:/host/sys:ro
-      # - /:/rootfs:ro
-      # - /etc/hostname:/etc/hostname
+    #   # - /proc:/host/proc:ro
+    #   # - /sys:/host/sys:ro
+    #   # - /:/rootfs:ro
+    #   # - /etc/hostname:/etc/hostname
     privileged: true
     # stdin_open: true
     # tty: true
-    ports: 
-      - 8880:8880
+    # ports: 
+    #   - 8880:8880
     # command: sleep 99999
 
+  prometheus:
+    image: flaviostutz/prometheus
+    ports:
+      - 9090:9090
+    environment:
+      - SCRAPE_INTERVAL=15s
+      - SCRAPE_TIMEOUT=10s
+      - DNS_SCRAPE_TARGETS=perfstat@perfstat:8880
+      # - STATIC_SCRAPE_TARGETS=mynginx1@nginx1ip:8080 mysqlexporter1@sqlexporter1ip:7070
+
+  grafana:
+    image: flaviostutz/grafana:5.2.4
+    ports:
+      - 3000:3000
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=mypass
+
+    

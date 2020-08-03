@@ -79,6 +79,10 @@ curl localhost:8880/metrics
 
 * Add this exporter to Prometheus configuration
 
+* Look at [docker-compose.yml](docker-compose.yml) for a complete example with Prometheus and Grafana
+
+* Download a example Grafana Dashboard for Perfstat [res/grafana1.json](here)
+
 #### Swarm
 
 * In order to run perfstat automatically on all hosts of a Swarm Cluster (even if the host is added after running this)
