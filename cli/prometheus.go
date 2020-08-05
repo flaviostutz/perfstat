@@ -70,6 +70,12 @@ func startPrometheus(ctx context.Context, opt Option, ps *perfstat.Perfstat) {
 		http.Serve(listenPort, router)
 		defer listenPort.Close()
 	}()
+	go func() {
+		select {
+		case <-ctx.Done():
+			listenPort.Close()
+		}
+	}()
 
 	//GENERATE METRICS
 	signalutils.StartWorker(ctx, "prom-metrics", func() error {
