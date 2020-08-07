@@ -18,9 +18,14 @@ After hundred of hours looking for metrics on CLI and Prometheus/Grafana tools, 
 
 Perfstat has various interfaces:
 
-* **CLI**: ```perfstat``` - for local diagnostics
-* **Prometheus Exporter**: ```perfstat prometheus``` - for remote monitoring
-* **Golang lib**: ```go get github.com/flaviostutz/perfstat``` - for using this in something greater
+* **CLI** - for local diagnostics
+  * ```perfstat```
+  * [Download here](https://github.com/flaviostutz/perfstat/releases)
+* **Prometheus Exporter** - for remote monitoring
+  * ```perfstat prometheus```
+  * [Download here](https://github.com/flaviostutz/perfstat/releases)
+* **Golang lib** - for using this in something greater
+  * ```go get github.com/flaviostutz/perfstat```
 
 
 ### CLI
