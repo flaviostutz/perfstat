@@ -156,6 +156,7 @@ func newHome(opt Option, ps *perfstat.Perfstat) (*home, error) {
 									container.SplitVertical(
 										container.Left(
 											container.PlaceWidget(h.cpuButton),
+											container.ID("cpuButton"),
 										),
 										container.Right(
 											container.PlaceWidget(h.cpuText),
@@ -167,6 +168,7 @@ func newHome(opt Option, ps *perfstat.Perfstat) (*home, error) {
 									container.SplitVertical(
 										container.Left(
 											container.PlaceWidget(h.memButton),
+											container.ID("memButton"),
 										),
 										container.Right(
 											container.PlaceWidget(h.memText),
@@ -182,6 +184,7 @@ func newHome(opt Option, ps *perfstat.Perfstat) (*home, error) {
 									container.SplitVertical(
 										container.Left(
 											container.PlaceWidget(h.diskButton),
+											container.ID("diskButton"),
 										),
 										container.Right(
 											container.PlaceWidget(h.diskText),
@@ -193,6 +196,7 @@ func newHome(opt Option, ps *perfstat.Perfstat) (*home, error) {
 									container.SplitVertical(
 										container.Left(
 											container.PlaceWidget(h.netButton),
+											container.ID("netButton"),
 										),
 										container.Right(
 											container.PlaceWidget(h.netText),
@@ -220,6 +224,7 @@ func newHome(opt Option, ps *perfstat.Perfstat) (*home, error) {
 											container.SplitVertical(
 												container.Left(
 													container.PlaceWidget(h.diskButtonr),
+													container.ID("diskButtonr"),
 												),
 												container.Right(
 													container.PlaceWidget(h.diskTextr),
@@ -231,6 +236,7 @@ func newHome(opt Option, ps *perfstat.Perfstat) (*home, error) {
 											container.SplitVertical(
 												container.Left(
 													container.PlaceWidget(h.memButtonr),
+													container.ID("memButtonr"),
 												),
 												container.Right(
 													container.PlaceWidget(h.memTextr),
@@ -244,6 +250,7 @@ func newHome(opt Option, ps *perfstat.Perfstat) (*home, error) {
 									container.SplitVertical(
 										container.Left(
 											container.PlaceWidget(h.netButtonr),
+											container.ID("netButtonr"),
 										),
 										container.Right(
 											container.PlaceWidget(h.netTextr),
@@ -309,12 +316,11 @@ func (h *home) update(opt Option, ps *perfstat.Perfstat, paused bool, term *term
 	//BOTTLENECK
 	scc := ps.Score("bottleneck", "cpu.*")
 	drc := ps.TopCriticity(0.01, "bottleneck", "cpu.*", false)
-	// fmt.Printf(">>>>>%s", renderDetectionResults(drc))
 	cpuButton2, _, err := subsystemBox(h.cpuButton, h.cpuText, "CPU", int(math.Round(scc*100.0)), "2", bw, bh, renderDetectionResults(drc))
 	if err != nil {
 		return err
 	}
-	*h.cpuButton = *cpuButton2
+	rootc.Update("cpuButton", container.PlaceWidget(cpuButton2))
 
 	scm := ps.Score("bottleneck", "mem.*")
 	drm := ps.TopCriticity(0.01, "bottleneck", "mem.*", false)
@@ -322,7 +328,7 @@ func (h *home) update(opt Option, ps *perfstat.Perfstat, paused bool, term *term
 	if err != nil {
 		return err
 	}
-	*h.memButton = *memButton2
+	rootc.Update("memButton", container.PlaceWidget(memButton2))
 
 	scd := ps.Score("bottleneck", "disk.*")
 	drd := ps.TopCriticity(0.01, "bottleneck", "disk.*", false)
@@ -330,7 +336,7 @@ func (h *home) update(opt Option, ps *perfstat.Perfstat, paused bool, term *term
 	if err != nil {
 		return err
 	}
-	*h.diskButton = *diskButton2
+	rootc.Update("diskButton", container.PlaceWidget(diskButton2))
 
 	scn := ps.Score("bottleneck", "net.*")
 	drn := ps.TopCriticity(0.01, "bottleneck", "net.*", false)
@@ -338,7 +344,7 @@ func (h *home) update(opt Option, ps *perfstat.Perfstat, paused bool, term *term
 	if err != nil {
 		return err
 	}
-	*h.netButton = *netButton2
+	rootc.Update("netButton", container.PlaceWidget(netButton2))
 
 	//RISKS
 	scd = ps.Score("risk", "disk.*")
@@ -347,7 +353,7 @@ func (h *home) update(opt Option, ps *perfstat.Perfstat, paused bool, term *term
 	if err != nil {
 		return err
 	}
-	*h.diskButtonr = *diskButton2r
+	rootc.Update("diskButtonr", container.PlaceWidget(diskButton2r))
 
 	scm = ps.Score("risk", "mem.*")
 	drm = ps.TopCriticity(0.01, "risk", "mem.*", false)
@@ -355,7 +361,7 @@ func (h *home) update(opt Option, ps *perfstat.Perfstat, paused bool, term *term
 	if err != nil {
 		return err
 	}
-	*h.memButtonr = *memButton2r
+	rootc.Update("memButtonr", container.PlaceWidget(memButton2r))
 
 	scn = ps.Score("risk", "net.*")
 	drn = ps.TopCriticity(0.01, "risk", "net.*", false)
@@ -363,7 +369,7 @@ func (h *home) update(opt Option, ps *perfstat.Perfstat, paused bool, term *term
 	if err != nil {
 		return err
 	}
-	*h.netButtonr = *netButton2r
+	rootc.Update("netButtonr", container.PlaceWidget(netButton2r))
 
 	//RELATED
 	t := table.NewWriter()

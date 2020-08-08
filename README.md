@@ -222,14 +222,4 @@ go run .
 
 ## CLI UI considerations
 
-We are using some pointer reassignments due to inability to change some widgets characteristics after building the container graph. This is dangerous, but was the only way to change some visuals dynamically. 
-
-Be aware of
-
-```golang
-	*h.memButton = *memButton2
-	*h.memText = *memText2
-```
-
-because there are some mutex locks misplaced there. We used termdash Controller redraw "by hand" to avoid concurrency problems and it is working well.
-
+Because there are some mutex locks misplaced there. We used termdash Controller redraw "by hand" to avoid concurrency problems and it is working well.

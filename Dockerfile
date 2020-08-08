@@ -12,14 +12,13 @@ ADD /go.sum /app/
 RUN go mod download
 
 ADD / /app/
-# RUN echo "TEST stats" && cd /app/stats && go test -v
-# RUN echo "TEST detectors" && cd /app/detectors && go test -v
+RUN echo "TEST stats" && cd /app/stats && go test -v
+RUN echo "TEST detectors" && cd /app/detectors && go test -v
 
 WORKDIR /app/cli
 
-# RUN go build -o /bin/perfstat
 RUN go build -o /bin/perfstat
 RUN chmod +x /bin/perfstat
 
-CMD [ "/app/startup.sh" ]
+CMD [ "/app/dist.sh" ]
 

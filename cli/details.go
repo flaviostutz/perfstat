@@ -149,6 +149,7 @@ func newDetails(group string, opt Option, ps *perfstat.Perfstat) (*detail, error
 							container.SplitVertical(
 								container.Left(
 									container.PlaceWidget(h.groupButton),
+									container.ID(fmt.Sprintf("%s-groupButton", group)),
 								),
 								container.Right(
 									container.PlaceWidget(h.sparkline3),
@@ -258,7 +259,7 @@ func (h *detail) update(opt Option, ps *perfstat.Perfstat, paused bool, term *te
 	if err != nil {
 		return err
 	}
-	*h.groupButton = *groupButton2
+	rootc.Update(fmt.Sprintf("%s-groupButton", h.group), container.PlaceWidget(groupButton2))
 
 	if h.group == "cpu" {
 		updateSparkSeriesTimeLoad(&detectors.ActiveStats.CPUStats.Total.User, h.sparkSeries1, "User", h.sparkline1, false)
