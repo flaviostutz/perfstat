@@ -20,5 +20,5 @@ WORKDIR /app/cli
 RUN go build -o /bin/perfstat
 RUN chmod +x /bin/perfstat
 
-CMD [ "/app/dist.sh" ]
+CMD [ "/app/startup.sh" ]
 
