@@ -1,5 +1,7 @@
 # perfstat
 
+[<img src="https://goreportcard.com/badge/github.com/flaviostutz/perfstat"/>](https://goreportcard.com/report/github.com/flaviostutz/perfstat)
+
 Analyze and show tips about possible bottlenecks and risks in Linux systems regarding to diskio, networking, cpu, swapping, memory etc.
 
 We decided to create this utility to help on the laborious job of aswering the following:
